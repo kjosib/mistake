@@ -20,7 +20,7 @@ setuptools.setup(
 	description='a language for not losing your marbles around high-dimensional matrices',
 	long_description=open('README.md').read(),
 	long_description_content_type="text/markdown",
-	# url="https://github.com/kjosib/glowing-chainsaw",
+	url="https://github.com/kjosib/mistake",
 	classifiers=[
 		"Programming Language :: Python :: 3",
 		"License :: OSI Approved :: MIT License",
@@ -34,6 +34,6 @@ setuptools.setup(
     ],
 	python_requires='>=3.7',
 	install_requires=[
-		'xlsxwriter', 'booze-tools>=0.4.3'
+		'booze-tools>=0.4.3',
 	]
 )
