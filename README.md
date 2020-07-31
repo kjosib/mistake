@@ -1,7 +1,14 @@
-# Mistake: An element-wise programming language
+# Mistake: A tensor-oriented programming language with semantic validation
 
-Some sizable amount of programming problems boil down to gnashing large matrices
-together in various ways. You should definitely go look at numpy or pandas first.
+Some sizable amount of programming problems boil down to gnashing tensors
+together in various ways. If you are running simple algorithms over vast
+amounts of data, go look at numpy or pandas or tensorflow or...
+
+On the other hand, if you do a lot of interrelated numeric-processing projects
+with fiddly requirements for the careful selection and massaging of tensor-like
+data on the scale of a few dozen megabytes, then perhaps this package is for you.
+(Maybe one day someone will contribute bindings for numpy so we can all grow fat,
+dumb, and happy.)
 
 I began work on this language because I think something like it is missing from
 the ecosystem. I'd like it to plug into Python because these days everything does,
@@ -40,3 +47,5 @@ the most sense, and write *Mistake* code where *Mistake* makes the most sense.
 Nothing. It's conceptual at the moment. I do have some ideas how to proceed.
 The grammar file at `src/mistake/mistake_grammar.md` will slowly grow a
 plain-language description of the semantics.
+
+Additionally, the `docs` folder contains design considerations.
