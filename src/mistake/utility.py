@@ -39,10 +39,12 @@ def tables(basis, doc) -> dict:
 	In a fully-packaged solution a pre-pickled table may seem desirable, but for now
 	this adaptive approach is better for hacking on.
 	"""
-	source_path = pathlib.Path(basis).parent/doc
-	cache_path = pathlib.Path(tempfile.gettempdir())/(doc+'.pickle')
-	def method():
+	def method(source_path):
 		from boozetools.macroparse import compiler
 		return compiler.compile_file(source_path, method='LR1')
 	
-	return pickle_cache(source_path, cache_path, method)
+	return pickle_cache(
+		pathlib.Path(basis).parent/doc,
+		pathlib.Path(tempfile.gettempdir())/(doc+'.pickle'),
+		method,
+	)

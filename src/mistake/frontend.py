@@ -5,4 +5,6 @@ from . import utility
 TABLES = utility.tables(__file__, 'mistake_grammar.md')
 
 class CoreDriver(brt.TypicalApplication):
-	pass
+	def scan_word(self, yy:Scanner):
+		yy.token("ID", yy.matched_text())
+		print(yy.matched_text())
