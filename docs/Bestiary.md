@@ -75,14 +75,36 @@ For cumulative dimensions, you generally want the attested index no less than,
 (or no greater than, or etc) the actual parameter. Suitable syntax for this
 kind of "approaching" idea must be provided.
 
+**Projection:** This is the generic name for taking one dimension to another.
+(In the deeper abstract, you might reasonably project from any set-of-dimensions
+to any OTHER set-of-dimensions, but that's very rare and can be put off or done
+differently.) Anyway, the operation fundamentally
+needs a source dim, a target dim, and an aggregate function. About 95+% of cases,
+that aggregate is mere summation. Most of the rest can probably be done with
+`convolve` and simple arithmetic. The rare exceptions might call for a plug-in.
+
 **Grouping:** Since the relationships between dimensions and attributes are
 known in advance, these can all be checked and planned before data-intensive
-or compute-intensive activities.
+or compute-intensive activities. This is a special case of projection in which
+the environment provides a function from one dimension to another, and the
+relevant aggregate-function is summation.
+
+**Convolution:** This is your simple arithmetic between fields of a record.
+Ideally these can be defined simply with a set of formulas assigning to the
+new fields in terms of the old fields. Operationally, it might be done in
+two phases: one organizing the data so that all corresponding inputs are
+together (on the same "row", as it were); the second evaluating the formulas
+for each "row". To the extent analysis can push that organization back the
+data supply chain, analysis wins.
 
 **Slicing, etc:** I see this being a component part of larger coherent operations.
 
 **Inspection**: To help see what's going on, show the judged shape of some expression
 and exit(9) after all such inspections have been performed. Or something?
+
+**Running Sum and Pairwise Difference:** How you convert incremental to
+cumulative and the reverse. NB: one of these operations followed by window
+slicing the same dimension is an opportunity for query optimization.
 
 ## Operations Between Scalars and Structures
 
