@@ -5,11 +5,12 @@ it's seemed that "cradle" is as good a name as any for the first
 initial "get things moving" module.
 -}
 
-this_is_an_identifier -- This is an end-of-line comment.
+this_is_an_identifier where foo < 1_000 else bar -- This is an end-of-line comment.
 
 """
 
 from mistake import frontend
 
-frontend.CoreDriver(frontend.TABLES).parse(__doc__)
-
+parser = frontend.CoreDriver(frontend.TABLES)
+ast = parser.parse(__doc__)
+print(ast)

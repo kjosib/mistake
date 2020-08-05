@@ -33,6 +33,6 @@ setuptools.setup(
     ],
 	python_requires='>=3.7',
 	install_requires=[
-		'booze-tools>=0.4.3',
+		'booze-tools>=0.4.4',
 	]
 )

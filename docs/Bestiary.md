@@ -119,6 +119,7 @@ Adds element-wise. Un-paired elements retain their original value.
 
 ## Parameterized Operations on Two Structures
 
+**Multiplexing:**
 `a where x<=y else b` : `a` and `b` have the same shape including dimension `x`.
 Result has again the same shape, with elements drawn from `a` which DO satisfy the
 predicate `x<=y` and also those drawn from `b` which do *not* satisfy the same predicate.

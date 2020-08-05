@@ -2,6 +2,22 @@
 
 This file is a temporary holding pen for ideas that don't yet have a better home.
 
+## REPL:
+
+I think I want a REPL for ad-hoc queries, similar to a SQL console.
+This suggests a simple REPL should be an ordinary method-call away,
+because most of the good stuff relies on whatever application-defined
+data access methods. Think of it as an interpreter with a standard prologue.
+Maybe it should use `readline` out of the box. Maybe a simple tkinter version
+should also be provided. And this suggests another channel of environmental
+interaction to present results after the fashion of an APL environment.
+So automatically there's call for a presentation of data grids.
+
+But the system should also be scriptable for batch-process jobs.
+
+At any rate, some of the console output stuff is great for debugging.
+ 
+
 ## Curves:
 
 Along a time axis, these can be integrals or derivatives.
