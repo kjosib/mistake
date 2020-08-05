@@ -6,7 +6,7 @@ TABLES = utility.tables(__file__, 'mistake_grammar.md')
 
 class CoreDriver(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
-	RESERVED_WORDS = frozenset('else week where'.split()) | MONTHS.keys()
+	RESERVED_WORDS = frozenset('else week where space tensor of is'.split()) | MONTHS.keys()
 	
 	def scan_ignore(self, yy:Scanner, what):
 		pass

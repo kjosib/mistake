@@ -43,7 +43,7 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void where else
+%void else week where space tensor of is
 ```
 
 ## Productions
@@ -51,13 +51,16 @@ Keeping it super-simple for now: just a few parse rules to
 get something going. I'm going with upper-case non-terminals
 and lower-case terminals this time, to see how I like the look.
 ```
+START -> TENSOR_EXPRESSION | TENSOR_DEFINITION
+
 TENSOR_EXPRESSION -> id
     | id where PREDICATE else id
 
 PREDICATE -> id relop SCALAR
 
-SCALAR -> integer
-SCALAR -> real
+SCALAR -> integer | real
+
+TENSOR_DEFINITION -> id is tensor id
 
 ```
 

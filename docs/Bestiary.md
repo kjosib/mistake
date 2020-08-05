@@ -6,7 +6,7 @@ the Middle Ages in illustrated volumes that described various animals and even r
 The natural history and illustration of each beast was usually accompanied by a moral lesson.
 
 
-The beasts in *this* catalogue are the names, shapes, and characteristics of fundamental
+The beasts in *this* catalogue are the names, spaces, and characteristics of fundamental
 operations and objects in the language to be discovered.
 
 ## Data and its Semantics
@@ -19,13 +19,13 @@ particular use in program text.
 for reference in formulas.
 
 **Tensor:** A collection of scalar (generally real-valued) data corresponding to each
-point in the cross-product of one or more dimensions. Every tensor has a shape,
+point in the cross-product of one or more dimensions. Every tensor has a space,
 described next.
 
-**Shape:** A collection of distinctly-named dimension instances
+**Space:** A collection of distinctly-named dimension instances
 (along with any semantic parameters)
-which describes the semantic
-organization of some tensors that may be processed. Shapes are much like types
+which describes the semantic organization of some tensors
+that may be processed. Spaces are much like types
 in conventional programming languages, but they've a richer semantics. They
 have structural equivalence rather than name-based equivalence.
 
@@ -58,7 +58,7 @@ that other dimension. In such case, you cannot have this dimension without also 
 
 **Record:** A set of fields with pre-defined arbitrary well-known distinct
 identifiers and no *natural* ordering. Individual fields may have
-heterogeneous subordinate shapes. (*Instances* of record-type dimensions
+heterogeneous subordinate spaces. (*Instances* of record-type dimensions
 may collapse some of these, though.)
 
 In general *record* types can be profitably described using the language directly.
@@ -99,7 +99,7 @@ data supply chain, analysis wins.
 
 **Slicing, etc:** I see this being a component part of larger coherent operations.
 
-**Inspection**: To help see what's going on, show the judged shape of some expression
+**Inspection**: To help see what's going on, show the judged space of some expression
 and exit(9) after all such inspections have been performed. Or something?
 
 **Running Sum and Pairwise Difference:** How you convert incremental to
@@ -112,7 +112,7 @@ The usual "element-wise" rules apply.
 
 ## Simple Operations on Two Structures
 
-`a + b` : `a` and `b` have the same shape and are not cumulative in any dimension.
+`a + b` : `a` and `b` have the same space and are not cumulative in any dimension.
 Adds element-wise. Un-paired elements retain their original value.
 
 `a - b` : Equivalent to `a + (0-b)`.
@@ -120,8 +120,8 @@ Adds element-wise. Un-paired elements retain their original value.
 ## Parameterized Operations on Two Structures
 
 **Multiplexing:**
-`a where x<=y else b` : `a` and `b` have the same shape including dimension `x`.
-Result has again the same shape, with elements drawn from `a` which DO satisfy the
+`a where x<=y else b` : `a` and `b` have the same space including dimension `x`.
+Result has again the same space, with elements drawn from `a` which DO satisfy the
 predicate `x<=y` and also those drawn from `b` which do *not* satisfy the same predicate.
 The predicate must be applicable to the dimension.
 
