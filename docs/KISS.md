@@ -28,3 +28,7 @@ to compute dimension-judgements. That means I only need a way
 to define cubes (spaces?) and have one or two naive "operations"
 upon such values. I can make it better LATER.
 
+----
+
+For now, the runtime system must be kept extremely simplistic.
+I'll start by supporting only simple independent dimensions.

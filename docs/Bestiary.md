@@ -36,7 +36,7 @@ Much of this ties back to the application integration layer.
 
 ## Kinds of Dimensions
 
-**Sequence:** The ordinals represent consecutive intervals in a clear linear progression.
+**Linear:** The ordinals represent consecutive intervals in a clear linear progression.
 They can generally be grouped in a hierarchy from smaller to larger units
 without overlap. Since the ordinals are totally-ordered, then the usual
 six relational operators work in the usual way.

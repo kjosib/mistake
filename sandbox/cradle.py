@@ -11,6 +11,8 @@ this_is_an_identifier where foo < 1_000 else bar -- This is an end-of-line comme
 
 from mistake import frontend
 
+import toys
+
 parser = frontend.CoreDriver(frontend.TABLES)
 ast = parser.parse(__doc__)
 print(ast)
