@@ -46,8 +46,9 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void else week where space tensor of is newline
-%void '(' ')'
+%void else week space tensor of is newline by
+%void '(' ')' '[' ']'
+%void ','
 
 %left '*' '/'
 %left '+' '-'
@@ -68,18 +69,32 @@ STATEMENT -> :empty_statement
     | id is TENSOR_EXPRESSION  :define_tensor
 
 TENSOR_EXPRESSION -> FACTOR
-    | _ where PREDICATE else _  :overlay
-    | _ '-' _     :difference
-    | _ '+' _     :sum
+    | FACTOR by SPACE     :aggregate_by
+    | _ '*' SCALAR        :scale_by
+    | _ '/' SCALAR        :scale_divide
+    | _ '*' _             :product
+    | _ '/' _             :quotient
+    | _ '-' _             :difference
+    | _ '+' _             :sum
+    | _ where PREDICATE else _  :multiplex
 
-FACTOR -> id
-    | _ '*' SCALAR :scale_by
-    | '(' TENSOR_EXPRESSION ')'
 
-PREDICATE -> id relop SCALAR
+FACTOR -> id | '(' TENSOR_EXPRESSION ')'
+
+PREDICATE -> id relop SCALAR    :criterion
 
 SCALAR -> integer | real
 
+SPACE -> '[' NCSL(id) ']'
+
+```
+
+Need a few macros then:
+* `CSL` stands for "comma-separated list of (one or more)"
+* `NCSL` stands for "comma-separated list of (zero or more)"
+```
+CSL(x) -> x :one | _ ',' x :more
+NCSL(x) -> :empty | CSL(x)
 
 ```
 

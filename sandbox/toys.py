@@ -23,6 +23,10 @@ class TensorType:
 		self.space = space
 		self.context = context
 		assert not context.intersection(space.keys()), context.intersection(space.keys())
+	
+	def validate_for_API(self, blame:str):
+		bogons = [k for k in self.space if k != k.lower()]
+		assert not bogons, "For %r, dimensions should be lower-case. This includes %r"%(blame, sorted(bogons))
 
 #----------------------------------------------------------------------------------------------------
 

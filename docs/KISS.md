@@ -32,3 +32,9 @@ upon such values. I can make it better LATER.
 
 For now, the runtime system must be kept extremely simplistic.
 I'll start by supporting only simple independent dimensions.
+
+----
+
+Version Zero need not worry about generic definitions.
+Type-checking pure straight-line assignment code is also a
+pure straight-line activity.
