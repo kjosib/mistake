@@ -44,8 +44,12 @@ the most sense, and write *Mistake* code where *Mistake* makes the most sense.
 
 ## Where do we stand?
 
-Nothing. It's conceptual at the moment. I do have some ideas how to proceed.
-The grammar file at `src/mistake/mistake_grammar.md` will slowly grow a
-plain-language description of the semantics.
+Very little. It's still mostly conceptual:
 
-Additionally, the `docs` folder contains design considerations.
+* There is a `sandbox` folder with some embryonic bits that
+  are slowly growing into a usable system.
+* There is a grammar file at `src/mistake/mistake_grammar.md`
+* The `docs` folder contains design considerations.
+
+If you want to play with this, it's probably still better to
+work from a copy of the github version.
