@@ -13,9 +13,12 @@ digits \d(_?\d)*
 
 
 ```
-\s+   :ignore whitespace
+\R    :token newline
+\h+   :ignore whitespace
 --.*  :ignore eol_comment
 \{-   :enter BLOCK_COMMENT
+
+{punct}    :punctuation
 
 \l\w* :word
 
@@ -43,24 +46,40 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void else week where space tensor of is
+%void else week where space tensor of is newline
+%void '(' ')'
+
+%left '*' '/'
+%left '+' '-'
+%nonassoc where
+
 ```
 
-## Productions
+## Productions START
 Keeping it super-simple for now: just a few parse rules to
 get something going. I'm going with upper-case non-terminals
 and lower-case terminals this time, to see how I like the look.
-```
-START -> TENSOR_EXPRESSION | TENSOR_DEFINITION
 
-TENSOR_EXPRESSION -> id
-    | id where PREDICATE else id
+```
+START -> STATEMENT :first
+    | _ newline STATEMENT :subsequent
+
+STATEMENT -> :empty_statement
+    | id is TENSOR_EXPRESSION  :define_tensor
+
+TENSOR_EXPRESSION -> FACTOR
+    | _ where PREDICATE else _  :overlay
+    | _ '-' _     :difference
+    | _ '+' _     :sum
+
+FACTOR -> id
+    | _ '*' SCALAR :scale_by
+    | '(' TENSOR_EXPRESSION ')'
 
 PREDICATE -> id relop SCALAR
 
 SCALAR -> integer | real
 
-TENSOR_DEFINITION -> id is tensor id
 
 ```
 

@@ -57,23 +57,3 @@ class TensorValue:
 		for key,value in self.__storage.items():
 			yield dict(zip(self.__schedule, key)), value
 
-#----------------------------------------------------------------------------------------------------
-
-# Let's have a go at loading some data:
-def exercise():
-	import zipfile, csv
-	tt = TensorType({
-		'ProductID':'-',
-		'OrderID':'-',
-	})
-	net_value = TensorValue(tt)
-	
-	northwind = zipfile.ZipFile('northwind.zip', 'r')
-	for record in csv.DictReader(northwind.read('order-details.csv').decode('utf-8').splitlines()):
-		line_item_value = float(record['UnitPrice']) * int(record['Quantity']) * (1-float(record['Discount']))
-		net_value.increment({
-			'ProductID': int(record['ProductID']),
-			'OrderID': int(record['OrderID']),
-		}, line_item_value)
-		
-exercise()
