@@ -19,6 +19,14 @@ double_dim is net_value by [ProductID, ProductID]
 
 bar is average_discount / 2
 
+nonsense_1 is net_value where ProductID < 1000 else average_discount -- Catches on the tensor spaces
+
+nonsense_2 is net_value where no_such_thing < 1000 else discount -- Catches a bogus dimension
+	-- There really ought to be a way to catch comparing (e.g.) dates with numbers,
+	-- but that means a table of available dimensions with their characteristics.
+
+nonsense_3 is net_value where ProductID < 1000 else discount -- This particular atrocity is not yet caught.
+
 """
 
 from boozetools.support import foundation
@@ -46,7 +54,7 @@ class Validator(foundation.Visitor):
 			parser.source.complain(*dt.name.span, message="Tensor name was previously defined; ignoring redefinition.")
 		else:
 			tt = self.visit(dt.expr)
-			if tt is invalid: parser.source.complain(*dt.name.span, message="Tensor variable is therefore given an invalid spatial type.")
+			if tt is invalid: parser.source.complain(*dt.name.span, message="Tensor value therefore has invalid spatial type.")
 			else: print(dt.name.text, 'has shape', sorted(tt.space.keys()))
 			self.__type_env[dt.name.text] = tt
 	
@@ -68,6 +76,18 @@ class Validator(foundation.Visitor):
 	def visit_Product(self, d: frontend.Product): return self.__symmetric_types(*d)
 	def visit_Quotient(self, d: frontend.Difference): return self.__symmetric_types(*d)
 	
+	def visit_Multiplex(self, m:frontend.Multiplex):
+		dim = m.criterion.axis
+		presume = self.__symmetric_types(m.if_true, dim.span, m.if_false)
+		if isinstance(presume, TensorType):
+			if dim.text not in presume.space:
+				parser.source.complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(presume.space)))
+				return invalid
+		else:
+			assert isinstance(presume, Invalid)
+		return presume
+		
+	
 	def visit_Aggregation(self, agg:frontend.Aggregation):
 		t_a = self.visit(agg.a_exp)
 		if isinstance(t_a, Invalid): return t_a
@@ -77,7 +97,7 @@ class Validator(foundation.Visitor):
 				parser.source.complain(*dim.span, message="Dimension was mentioned earlier in the same list.")
 				return invalid
 			if dim.text not in t_a.space:
-				parser.source.complain(*dim.span, message="Dimension %r unavailable here : options are %r."%(dim.text, list(t_a.space)))
+				parser.source.complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(t_a.space)))
 				return invalid
 			new_space[dim.text] = t_a.space[dim.text]
 		return TensorType(new_space, t_a.context)
@@ -121,7 +141,7 @@ def sample_environment():
 	
 	return {'quantity_sold':tensor_qty, 'gross':tensor_gross, 'discount':tensor_discount}
 
-parser = frontend.CoreDriver()
+parser = frontend.Parser()
 ast = parser.parse(__doc__)
 if ast is not None:
 	Validator(sample_environment()).visit(ast)

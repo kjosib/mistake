@@ -14,6 +14,8 @@ I began work on this language because I think something like it is missing from
 the ecosystem. I'd like it to plug into Python because these days everything does,
 and I'd like the notation to be sufficiently expressive.
 
+## Why the funny name?
+
 Casting about madly for a project name, I noticed that Edsger Dijkstra called APL
 on the carpet as follows:
 
@@ -33,10 +35,31 @@ Small to medium-sized data sets, generally numerical, with a great deal of
 structure: conventionally the programs to process such data wind up reflecting
 that structure *holographically* throughout the code base.
 
+What's more: requirements (or, our understanding of them) change with time.
+When your assumptions fall, the ripple effects in a conventionally-written
+program are operational in nature: to make the correct changes, you need to
+understand how things work at a fairly detailed level.
+
 A language is more than syntax: it's a coherent set of semantics. These can be
 so arranged that the structure and constraints on data are expressed once (together)
-and the essential ideas about *using* the data are not cluttered up with
+and the essential ideas *about using* the data are not cluttered up with
 holographic echoes of the structure.
+
+Let me amplify that point: In ordinary 3GL programming (and Python is a 3GL) there
+is *no verified* part of the program that says how you *should* use data. If two
+things are numbers, you *can* add, subtract, multiply, or divide them --
+but *does that make any sense?* If we can compute the semantic nature of
+expressions in advance of the main bulk of runtime, then we can detect and
+prevent semantic errors before they endanger the validity of our computations.
+
+We get some additional benefits from treating the language as a semantic description
+of relationships between data and computations. For example:
+
+* Iteration/looping is banished from the syntax. Statements are inherently
+  parallel (so you can implement that parallelism any way you like).
+
+* The system can (and should) be "lazy" by only performing that fraction of
+  specified computation which is strictly necessary to answer a user's query.
 
 By tying the DSL back to Python in key places, it's easy (I hope) to bolt this
 into an existing pipeline. Ideally you'll write *Python* where *Python*  makes
@@ -48,8 +71,13 @@ Very little. It's still mostly conceptual:
 
 * There is a `sandbox` folder with some embryonic bits that
   are slowly growing into a usable system.
-* There is a grammar file at `src/mistake/mistake_grammar.md`
+* There is a grammar file at `src/mistake/mistake_grammar.md`.
 * The `docs` folder contains design considerations.
+* Some modicum of functionality is in the `src/mistake` folder.
 
-If you want to play with this, it's probably still better to
+The main entry point right now is at `sandbox/cradle.py`. It's currently
+focused on developing a simple validation layer. Don't be surprised when
+it vomits all over `STDERR`: that is literally its job.
+
+If you want to play with this, it's currently better to
 work from a copy of the github version.

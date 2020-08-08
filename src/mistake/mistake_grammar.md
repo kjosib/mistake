@@ -18,8 +18,6 @@ digits \d(_?\d)*
 --.*  :ignore eol_comment
 \{-   :enter BLOCK_COMMENT
 
-{punct}    :punctuation
-
 \l\w* :word
 
 <     :relop LT
@@ -31,6 +29,8 @@ digits \d(_?\d)*
 
 {digits}            :integer
 {digits}\.{digits}  :real
+
+{punct}    :punctuation
 
 ```
 
@@ -46,7 +46,7 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void else week space tensor of is newline by
+%void where else week space tensor of is newline by
 %void '(' ')' '[' ']'
 %void ','
 

@@ -42,13 +42,23 @@ class Aggregation(NamedTuple):
 	a_exp: object
 	new_space:List[Name]
 
+class Criterion(NamedTuple):
+	axis:Name
+	relop:str
+	scalar:object
 
-class CoreDriver(brt.TypicalApplication):
+class Multiplex(NamedTuple):
+	if_true: object
+	criterion: Criterion
+	if_false: object
+
+
+class Parser(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
 	RESERVED_WORDS = frozenset('else week where space tensor of is by'.split()) | MONTHS.keys()
 	
 	def __init__(self):
-		super(CoreDriver, self).__init__(TABLES)
+		super(Parser, self).__init__(TABLES)
 		self.module = {}
 	
 	def scan_ignore(self, yy:Scanner, what):
@@ -99,6 +109,9 @@ class CoreDriver(brt.TypicalApplication):
 	parse_product = staticmethod(Product)
 	parse_quotient = staticmethod(Quotient)
 	
+	parse_criterion = staticmethod(Criterion)
+	parse_multiplex = staticmethod(Multiplex)
+	
 	@staticmethod
 	def parse_scale_by(t_exp, _, factor):
 		return ScaleBy(t_exp, factor)
@@ -108,3 +121,4 @@ class CoreDriver(brt.TypicalApplication):
 		return ScaleBy(t_exp, 1.0/denominator)
 	
 	parse_aggregate_by = staticmethod(Aggregation)
+	
