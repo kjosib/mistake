@@ -31,7 +31,7 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 
 from boozetools.support import foundation
 from mistake import frontend
-from toys import TensorType, TensorValue
+from toys import TensorType, TensorValue, northwind
 
 class Invalid: pass
 invalid = Invalid()
@@ -129,15 +129,13 @@ def sample_environment():
 	tensor_gross = TensorValue(tt)
 	tensor_discount = TensorValue(tt)
 	
-	northwind = zipfile.ZipFile('northwind.zip', 'r')
-	for record in csv.DictReader(northwind.read('order-details.csv').decode('utf-8').splitlines()):
-		point = {'productid': int(record['ProductID']), 'orderid': int(record['OrderID']), }
-		qty = int(record['Quantity'])
-		price = float(record['UnitPrice']) * qty
-		discount = price * float(record['Discount'])
-		tensor_qty.increment(point, qty)
-		tensor_gross.increment(point, price)
-		tensor_discount.increment(point, discount)
+	for record in northwind('order-details', productid=int, orderid=int, quantity=int, unitprice=float, discount=float):
+		qty = record['quantity']
+		price = record['unitprice'] * qty
+		discount = price * record['discount']
+		tensor_qty.increment(record, qty)
+		tensor_gross.increment(record, price)
+		tensor_discount.increment(record, discount)
 	
 	return {'quantity_sold':tensor_qty, 'gross':tensor_gross, 'discount':tensor_discount}
 

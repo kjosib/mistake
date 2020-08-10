@@ -7,6 +7,8 @@ These toys are meant for experimentation:
 """
 
 from typing import Dict, Set
+import zipfile, re
+
 
 # Let's start with an algebra of structure spaces, with the goal of being able to
 # label the space-type associated with each expression in a program.
@@ -60,4 +62,25 @@ class TensorValue:
 	def items(self):
 		for key,value in self.__storage.items():
 			yield dict(zip(self.__schedule, key)), value
+
+def northwind(table_name, **adjust):
+	"""
+	Yield a stream of "records" as dictionaries, with certain adjustments.
+	
+	So it turns out my source of NorthWind data has a bizarre nonstandard format:
+	Embedded commas are those followed by whitespace!
+	The usual csv module doesn't handle that by default and neither does MS Excel.
+	Fortunately it's not hard to deal with. Anyway, this is just a concept demo.
+	It doesn't have to be amazing. It has to get a point across, and the weird CSV
+	format is not that point.
+	"""
+	def split(s:str): return delimiter.split(s.rstrip('\n'))
+	delimiter = re.compile(r',(?!\s)')
+	with zipfile.ZipFile('northwind.zip', 'r') as archive:
+		text = iter(archive.read(table_name+'.csv').decode('utf-8').splitlines())
+		heads = [h.lower() for h in split(next(text))]
+		for tails in text:
+			row = dict(zip(heads, split(tails)))
+			for k,fn in adjust.items(): row[k] = fn(row[k])
+			yield row
 
