@@ -38,3 +38,10 @@ I'll start by supporting only simple independent dimensions.
 Version Zero need not worry about generic definitions.
 Type-checking pure straight-line assignment code is also a
 pure straight-line activity.
+
+----
+
+Demand loading of data: This is an important long-term goal,
+but it's not necessary in the short run. The key is to have
+some sort of cache-line concept (so data that lives together,
+loads together) but FOR NOW it can wait.

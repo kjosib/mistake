@@ -6,29 +6,9 @@ These toys are meant for experimentation:
 	Neither organization nor documentation are assured.
 """
 
-from typing import Dict, Set
+from typing import Dict
 import zipfile, re
-
-
-# Let's start with an algebra of structure spaces, with the goal of being able to
-# label the space-type associated with each expression in a program.
-
-#----------------------------------------------------------------------------------------------------
-
-# In simplest conception, a space is a dictionary from dimensions to various control information.
-# However, a particular tensor will have both data and context.
-
-class TensorType:
-	"""Simplest thing that could remotely resemble working for a limited subset of cases:"""
-	# In particular, as soon as you introduce "record" types, this is inadequate.
-	def __init__(self, space:Dict[str,object], context:Set[str]=frozenset()):
-		self.space = space
-		self.context = context
-		assert not context.intersection(space.keys()), context.intersection(space.keys())
-	
-	def validate_for_API(self, blame:str):
-		bogons = [k for k in self.space if k != k.lower()]
-		assert not bogons, "For %r, dimensions should be lower-case. This includes %r"%(blame, sorted(bogons))
+from mistake import domain
 
 #----------------------------------------------------------------------------------------------------
 
@@ -40,7 +20,7 @@ class TensorType:
 
 class TensorValue:
 	""" This is sort of a default "simplest conceivable" storage class """
-	def __init__(self, tt:TensorType, context:Dict[str, object]=()):
+	def __init__(self, tt:domain.TensorType, context:Dict[str, object]=()):
 		self.tt = tt
 		self.context = dict(context)
 		assert self.context.keys() == tt.context # Semantic validation should prove this.

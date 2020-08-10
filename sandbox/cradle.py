@@ -31,7 +31,8 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 
 from boozetools.support import foundation
 from mistake import frontend
-from toys import TensorType, TensorValue, northwind
+from mistake.domain import TensorType
+from toys import TensorValue, northwind
 
 class Invalid: pass
 invalid = Invalid()
