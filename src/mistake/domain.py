@@ -7,7 +7,7 @@ This file is still very much in KISS mode.
 
 from typing import Dict, Set
 
-__ALL__ = ['TensorType']
+__ALL__ = ['Dimension', 'TensorType']
 
 # Let's start with an algebra of structure spaces, with the goal of being able to
 # label the space-type associated with each expression in a program.
@@ -26,7 +26,12 @@ class TensorType:
 		assert not context.intersection(space.keys()), context.intersection(space.keys())
 	
 	def validate_for_API(self, blame:str):
-		bogons = [k for k in self.space if k != k.lower()]
-		assert not bogons, "For %r, dimensions should be lower-case. This includes %r"%(blame, sorted(bogons))
+		bogons = []
+		for k,v in self.space.items():
+			if k != k.lower(): bogons.append('%r should have been lower-case.'%k)
+			if not isinstance(v, Dimension): bogons.append('%r should have been a (subclass of) <Dimension>, not %r.'%(k,type(v)))
+		if bogons: raise ValueError(blame, bogons)
 
-
+class Dimension:
+	""" Abstract base class... """
+	

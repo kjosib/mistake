@@ -28,17 +28,18 @@ nonsense_2 is net_value where no_such_thing < 1000 else discount -- Catches a bo
 nonsense_3 is net_value where ProductID < 1000 else discount -- This particular atrocity is not yet caught.
 
 """
-
+from typing import Callable
 from boozetools.support import foundation
 from mistake import frontend
-from mistake.domain import TensorType
+from mistake.domain import TensorType, Dimension
 from toys import TensorValue, northwind
 
 class Invalid: pass
 invalid = Invalid()
 
 class Validator(foundation.Visitor):
-	def __init__(self, environment:dict):
+	def __init__(self, environment:dict, complain:Callable):
+		self.__complain = complain
 		self.__type_env = {}
 		for k,v in environment.items():
 			assert isinstance(k, str) and isinstance(v, TensorValue)
@@ -52,10 +53,10 @@ class Validator(foundation.Visitor):
 	
 	def visit_DefineTensor(self, dt:frontend.DefineTensor):
 		if dt.name.text in self.__type_env:
-			parser.source.complain(*dt.name.span, message="Tensor name was previously defined; ignoring redefinition.")
+			self.__complain(*dt.name.span, message="Tensor name was previously defined; ignoring redefinition.")
 		else:
 			tt = self.visit(dt.expr)
-			if tt is invalid: parser.source.complain(*dt.name.span, message="Tensor value therefore has invalid spatial type.")
+			if tt is invalid: self.__complain(*dt.name.span, message="Tensor value therefore has invalid spatial type.")
 			else: print(dt.name.text, 'has shape', sorted(tt.space.keys()))
 			self.__type_env[dt.name.text] = tt
 	
@@ -69,7 +70,7 @@ class Validator(foundation.Visitor):
 			return TensorType(t_a.space, t_a.context & t_b.context)
 		else:
 			diff = set(t_a.space).symmetric_difference(t_b.space)
-			parser.source.complain(*op_span, message="Operand spaces do not agree about %r"%diff)
+			self.__complain(*op_span, message="Operand spaces do not agree about %r"%diff)
 			return invalid
 	
 	def visit_Sum(self, d: frontend.Sum): return self.__symmetric_types(*d)
@@ -82,7 +83,7 @@ class Validator(foundation.Visitor):
 		presume = self.__symmetric_types(m.if_true, dim.span, m.if_false)
 		if isinstance(presume, TensorType):
 			if dim.text not in presume.space:
-				parser.source.complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(presume.space)))
+				self.__complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(presume.space)))
 				return invalid
 		else:
 			assert isinstance(presume, Invalid)
@@ -95,10 +96,10 @@ class Validator(foundation.Visitor):
 		new_space = {}
 		for dim in agg.new_space:
 			if dim.text in new_space:
-				parser.source.complain(*dim.span, message="Dimension was mentioned earlier in the same list.")
+				self.__complain(*dim.span, message="Dimension was mentioned earlier in the same list.")
 				return invalid
 			if dim.text not in t_a.space:
-				parser.source.complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(t_a.space)))
+				self.__complain(*dim.span, message="Dimension %r is not available here. options are %r."%(dim.text, sorted(t_a.space)))
 				return invalid
 			new_space[dim.text] = t_a.space[dim.text]
 		return TensorType(new_space, t_a.context)
@@ -106,7 +107,7 @@ class Validator(foundation.Visitor):
 	def visit_Name(self, n:frontend.Name):
 		try: return self.__type_env[n.text]
 		except KeyError:
-			parser.source.complain(*n.span, message="undefined name.")
+			self.__complain(*n.span, message="undefined name.")
 			return invalid
 	
 	def visit_ScaleBy(self, s:frontend.ScaleBy):
@@ -121,10 +122,9 @@ class Validator(foundation.Visitor):
 
 # Let's have a go at loading some data:
 def sample_environment():
-	import zipfile, csv
 	tt = TensorType({
-		'productid': '-',
-		'orderid': '-',
+		'productid': Dimension(),
+		'orderid': Dimension(),
 	})
 	tensor_qty = TensorValue(tt)
 	tensor_gross = TensorValue(tt)
@@ -143,5 +143,5 @@ def sample_environment():
 parser = frontend.Parser()
 ast = parser.parse(__doc__)
 if ast is not None:
-	Validator(sample_environment()).visit(ast)
+	Validator(sample_environment(), parser.source.complain).visit(ast)
 
