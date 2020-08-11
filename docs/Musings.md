@@ -2,6 +2,20 @@
 
 This file is a temporary holding pen for ideas that don't yet have a better home.
 
+## Proper Automatic Testing
+
+Most of the juicy bits are about the system catching broken expressions.
+Since the validator object takes a "complain" function as a parameter,
+it's well-suited to unit-testing: just pass it a function that tells
+the test suite (not the end user) what's going on. That'll be coming.
+
+## Proper Documentation
+
+It will soon be time to spin up another Sphinx.
+Sections should include tutorials, examples, reference.
+Open question: how to organize a tutorial? Also, should there be a tutorial module?
+Note also this is an embedding language, so it need an application context.
+
 ## REPL:
 
 I think I want a REPL for ad-hoc queries, similar to a SQL console.

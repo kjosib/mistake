@@ -11,11 +11,9 @@ digits \d(_?\d)*
 
 ## Patterns INITIAL
 
-
 ```
-\R    :token newline
 \h+   :ignore whitespace
---.*  :ignore eol_comment
+(--.*)?\R    :token newline
 \{-   :enter BLOCK_COMMENT
 
 \l\w* :word
@@ -30,6 +28,7 @@ digits \d(_?\d)*
 {digits}            :integer
 {digits}\.{digits}  :real
 
+->         |
 {punct}    :punctuation
 
 ```
@@ -46,13 +45,13 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void where else week space tensor of is newline by
-%void '(' ')' '[' ']'
-%void ','
+%void where else week space tensor of is newline by sum
+%void '(' ')' '[' ']' '{' '}' '->'
+%void ',' ';'
 
 %left '*' '/'
 %left '+' '-'
-%nonassoc where
+%nonassoc where sum
 
 ```
 
@@ -75,8 +74,9 @@ TENSOR_EXPRESSION -> FACTOR
     | _ '*' _             :product
     | _ '/' _             :quotient
     | _ '-' _             :difference
-    | _ '+' _             :sum
+    | _ '+' _             :tensor_sum
     | _ where PREDICATE else _  :multiplex
+    | _ sum '{' SSL(MAPPING) '}'  :sum_image
 
 
 FACTOR -> id | '(' TENSOR_EXPRESSION ')'
@@ -87,14 +87,20 @@ SCALAR -> integer | real
 
 SPACE -> '[' NCSL(id) ']'
 
+MAPPING -> DOMAIN '->' DOMAIN :mapping
+
+DOMAIN -> id :one | SPACE
+
 ```
 
 Need a few macros then:
 * `CSL` stands for "comma-separated list of (one or more)"
 * `NCSL` stands for "comma-separated list of (zero or more)"
+* `SSL` stands for "semicolon-separated list of (one or more)"
 ```
 CSL(x) -> x :one | _ ',' x :more
 NCSL(x) -> :empty | CSL(x)
+SSL(x) -> x :one | _ ';' x :more
 
 ```
 

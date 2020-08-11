@@ -18,7 +18,7 @@ from mistake import domain
 
 # Let's posit a simple storage class:
 
-class TensorValue:
+class ConcreteTensor(domain.AbstractTensor):
 	""" This is sort of a default "simplest conceivable" storage class """
 	def __init__(self, tt:domain.TensorType, context:Dict[str, object]=()):
 		self.tt = tt

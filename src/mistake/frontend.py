@@ -14,7 +14,7 @@ class DefineTensor(NamedTuple):
 	name:Name
 	expr:object
 
-class Sum(NamedTuple):
+class TensorSum(NamedTuple):
 	a_exp: object
 	span:Tuple[int,int]
 	b_exp: object
@@ -52,10 +52,17 @@ class Multiplex(NamedTuple):
 	criterion: Criterion
 	if_false: object
 
+class Mapping(NamedTuple):
+	domain: List[Name]
+	range: List[Name]
+
+class SumImage(NamedTuple):
+	a_exp: object
+	sums: List[Mapping]
 
 class Parser(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
-	RESERVED_WORDS = frozenset('else week where space tensor of is by'.split()) | MONTHS.keys()
+	RESERVED_WORDS = frozenset('else week where space tensor of is by sum'.split()) | MONTHS.keys()
 	
 	def __init__(self):
 		super(Parser, self).__init__(TABLES)
@@ -104,13 +111,15 @@ class Parser(brt.TypicalApplication):
 		return them
 	
 	parse_define_tensor = staticmethod(DefineTensor)
-	parse_sum = staticmethod(Sum)
+	parse_tensor_sum = staticmethod(TensorSum)
 	parse_difference = staticmethod(Difference)
 	parse_product = staticmethod(Product)
 	parse_quotient = staticmethod(Quotient)
 	
 	parse_criterion = staticmethod(Criterion)
 	parse_multiplex = staticmethod(Multiplex)
+	parse_mapping = staticmethod(Mapping)
+	parse_sum_image = staticmethod(SumImage)
 	
 	@staticmethod
 	def parse_scale_by(t_exp, _, factor):

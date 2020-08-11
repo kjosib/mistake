@@ -7,7 +7,7 @@ This file is still very much in KISS mode.
 
 from typing import Dict, Set
 
-__ALL__ = ['Dimension', 'TensorType']
+__ALL__ = ['Dimension', 'TensorType', 'AbstractTensor']
 
 # Let's start with an algebra of structure spaces, with the goal of being able to
 # label the space-type associated with each expression in a program.
@@ -35,3 +35,11 @@ class TensorType:
 class Dimension:
 	""" Abstract base class... """
 	
+class AbstractTensor:
+	"""
+	This ABC establishes the operations a tensor (expression) must support at runtime.
+	At the time of this writing, there is no runtime. Ergo, there are no operations.
+	However, it should be noted that this interface is not at all about storing data.
+	It's entirely about retrieval (and computation) on-demand. Applications will
+	generally extend this to support whatever oddball data sources they may have.
+	"""
