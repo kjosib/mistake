@@ -9,12 +9,43 @@ Since the validator object takes a "complain" function as a parameter,
 it's well-suited to unit-testing: just pass it a function that tells
 the test suite (not the end user) what's going on. That'll be coming.
 
+A "space assertion" provides a way to check the validator's work for
+the portion of tests where it *is* expected to succeed.
+
 ## Proper Documentation
 
 It will soon be time to spin up another Sphinx.
 Sections should include tutorials, examples, reference.
 Open question: how to organize a tutorial? Also, should there be a tutorial module?
 Note also this is an embedding language, so it need an application context.
+
+## Profiling and Performance Tuning
+
+Eventually someone is going to be concerned with performance. Most times,
+we make this kind of a system run faster by making it perform less work.
+I anticipate there will be some sort of "Tensor Service" interface
+that deals in standardized query parameters. There are a few basic ways
+this goes wrong:
+
+* Selecting too much data (thus wasting effort)
+* Selecting not enough data (and having to make multiple round-trips)
+* Forgetting too soon about data recently selected (repeating work)
+* Expecting the tensor service to be too smart (a maintenance hell)
+
+The balance is tricky. If a given "Tensor Service" can strongly benefit
+from one or two specific query parameters, it should negotiate that with
+the query planner. This aspect strongly resembles the wise selection of
+indexes in a SQL database.
+
+As for actual performance *measurement*, the generic profiling module
+is a good start for understanding which services run slow. However,
+it may also be worth looking specifically at how much data gets selected
+and subsequently either filtered out or summarized, because both represent
+opportunities: either to push a filter upstream, or to cache a summary.
+
+Relating to the last point, whenever a client application requires some
+computation, it's best to ask for all the things you want in one transaction,
+because it will presumably allow the query planner to do its best work.
 
 ## REPL:
 
