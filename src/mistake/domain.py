@@ -5,7 +5,7 @@ sensible uses of data. Applications will import this to set up their schemas.
 This file is still very much in KISS mode.
 """
 
-from typing import Dict, Set
+from typing import Iterable, Set, FrozenSet
 
 __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor']
 
@@ -20,17 +20,20 @@ __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor']
 class TensorType:
 	"""Simplest thing that could remotely resemble working for a limited subset of cases:"""
 	# In particular, as soon as you introduce "record" types, this is inadequate.
-	def __init__(self, space:Dict[str,object], context:Set[str]=frozenset()):
+	def __init__(self, space:Set[str], context:Set[str]):
+		assert isinstance(space, set), type(space)
+		assert isinstance(context, set), type(context)
 		self.space = space
 		self.context = context
-		assert not context.intersection(space.keys()), context.intersection(space.keys())
+		self.e_space = space | context
+		assert not self.context & self.space, self.context & self.space
 	
 	def validate_for_API(self, blame:str):
 		bogons = []
-		for k,v in self.space.items():
+		for k in self.space:
 			if k != k.lower(): bogons.append('%r should have been lower-case.'%k)
-			if not isinstance(v, Dimension): bogons.append('%r should have been a (subclass of) <Dimension>, not %r.'%(k,type(v)))
 		if bogons: raise ValueError(blame, bogons)
+	
 
 class Dimension:
 	""" Abstract base class... """
@@ -43,3 +46,12 @@ class AbstractTensor:
 	It's entirely about retrieval (and computation) on-demand. Applications will
 	generally extend this to support whatever oddball data sources they may have.
 	"""
+
+class TransformFunction:
+	"""
+	Various places in the language (must) support the idea of taking the ordinals of one
+	dimension (or space) into another. This class answers that need.
+	"""
+	source_space:FrozenSet[str]
+	target_space:FrozenSet[str]
+	

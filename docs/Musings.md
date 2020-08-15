@@ -2,6 +2,15 @@
 
 This file is a temporary holding pen for ideas that don't yet have a better home.
 
+## Query Planning
+
+So this is about the time I begin to figure the validator could also plan queries.
+Simply put: instead of returning only the type of an expression, it could return
+an object consisting of both type and plan. In case of a mis-typed expression, the
+"plan" would be to raise an exception. This could result in a system where even
+if parts of a domain model are ill-typed, the well-typed parts can still function.
+That may have considerable practical value.
+
 ## Proper Automatic Testing
 
 Most of the juicy bits are about the system catching broken expressions.
@@ -61,7 +70,10 @@ So automatically there's call for a presentation of data grids.
 But the system should also be scriptable for batch-process jobs.
 
 At any rate, some of the console output stuff is great for debugging.
- 
+
+As an aside, a REPL should probably not create symbol table entries for broken definitions,
+and it should also probably allow to reset (or maybe commit?) a vocabulary so far.
+
 
 ## Curves:
 

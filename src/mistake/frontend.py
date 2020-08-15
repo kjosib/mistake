@@ -52,13 +52,13 @@ class Multiplex(NamedTuple):
 	criterion: Criterion
 	if_false: object
 
-class Mapping(NamedTuple):
+class MappingExpression(NamedTuple):
 	domain: List[Name]
 	range: List[Name]
 
 class SumImage(NamedTuple):
 	a_exp: object
-	sums: List[Mapping]
+	sums: List[MappingExpression]
 
 class Parser(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
@@ -118,7 +118,7 @@ class Parser(brt.TypicalApplication):
 	
 	parse_criterion = staticmethod(Criterion)
 	parse_multiplex = staticmethod(Multiplex)
-	parse_mapping = staticmethod(Mapping)
+	parse_mapping = staticmethod(MappingExpression)
 	parse_sum_image = staticmethod(SumImage)
 	
 	@staticmethod

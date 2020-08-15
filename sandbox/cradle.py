@@ -45,10 +45,7 @@ from toys import ConcreteTensor, northwind
 
 # Let's have a go at loading some data:
 def sample_environment():
-	tt = TensorType({
-		'productid': Dimension(),
-		'orderid': Dimension(),
-	})
+	tt = TensorType({'productid', 'orderid',}, set())
 	tensor_qty = ConcreteTensor(tt)
 	tensor_gross = ConcreteTensor(tt)
 	tensor_discount = ConcreteTensor(tt)
