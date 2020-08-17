@@ -45,8 +45,8 @@ digits \d(_?\d)*
 ## Declarations
 
 ```
-%void where else week space tensor of is newline by sum
-%void '(' ')' '[' ']' '{' '}' '->'
+%void where else week space tensor of is newline sum
+%void '(' ')' '[' ']' '{' '}'
 %void ',' ';'
 
 %left '*' '/'

@@ -6,15 +6,19 @@ initial "get things moving" module.
 
 As a sample working environment, I'm using the order_details table
 from (the enclosed copy of) the Northwind Traders database.
+
+This module has become a
 -}
 
-net_value is gross - discount   -- Let's say we do single-assignment form.
-net_value is gross              -- Ignore re-definition.
+gross is quantity_sold * unit_price -- Operations are are element-wise.
+discount is gross * discount_rate   -- Things are computed only if necessary.
+net_value is gross - discount   -- Enforce single-assignment: this line errors.
+net_value is gross              -- Ignore re-definition: this line also errors.
 foo is bar                      -- Cope with undefined names. 'foo' becomes defined but invalid.
 
 average_discount is discount by [ProductID] / quantity_sold by [ProductID]
 borken_average is discount by [ProductID] / quantity_sold by [OrderID] -- cope with mismatched dimensions.
-missing_dim is average_discount by [product_id]
+missing_dim is average_discount by [product_id]   -- Note the misspelled dimension name.
 double_dim is net_value by [ProductID, ProductID]
 
 bar is average_discount / 2
@@ -32,36 +36,15 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 revenue_by_country is net_value sum { orderid -> shipcountry }
 
 """
-from mistake import frontend, validation
-from mistake.domain import TensorType, Dimension
-from toys import ConcreteTensor, northwind
 
-# ----------------------------------------------------------------------------------------------------
-
-# Presumably we need to configure some pre-loads into the semantic environment before running
-# our little program.
-
-# ----------------------------------------------------------------------------------------------------
-
-# Let's have a go at loading some data:
-def sample_environment():
-	tt = TensorType({'productid', 'orderid',}, set())
-	tensor_qty = ConcreteTensor(tt)
-	tensor_gross = ConcreteTensor(tt)
-	tensor_discount = ConcreteTensor(tt)
-	
-	for record in northwind('order-details', productid=int, orderid=int, quantity=int, unitprice=float, discount=float):
-		qty = record['quantity']
-		price = record['unitprice'] * qty
-		discount = price * record['discount']
-		tensor_qty.increment(record, qty)
-		tensor_gross.increment(record, price)
-		tensor_discount.increment(record, discount)
-	
-	return {'quantity_sold':tensor_qty, 'gross':tensor_gross, 'discount':tensor_discount}
+from mistake import frontend, planning
+import toys
 
 parser = frontend.Parser()
 ast = parser.parse(__doc__)
 if ast is not None:
-	validation.Validator(sample_environment(), parser.source.complain).visit(ast)
+	universe = toys.sample_universe()
+	planning.Planner(universe, parser.source.complain).visit(ast)
+	for p, v in universe.get_tensor('average_discount').stream():
+		print(p, round(v,2))
 

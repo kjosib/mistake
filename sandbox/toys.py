@@ -6,9 +6,10 @@ These toys are meant for experimentation:
 	Neither organization nor documentation are assured.
 """
 
-from typing import Dict
+from typing import Dict, Generator, Callable
 import zipfile, re
-from mistake import domain
+from mistake.domain import Universe, Dimension, AbstractTensor, Space
+
 
 #----------------------------------------------------------------------------------------------------
 
@@ -18,32 +19,8 @@ from mistake import domain
 
 # Let's posit a simple storage class:
 
-class ConcreteTensor(domain.AbstractTensor):
-	""" This is sort of a default "simplest conceivable" storage class """
-	def __init__(self, tt:domain.TensorType, context:Dict[str, object]=()):
-		self.tt = tt
-		self.context = dict(context)
-		assert self.context.keys() == tt.context # Semantic validation should prove this.
-		self.__storage = {}
-		self.__schedule = tuple(self.tt.space)
 
-	def __key(self, point:dict) -> tuple:
-		# We can worry about the VALIDITY of keys later.
-		return tuple(point[k] for k in self.__schedule)
-
-	def get(self, point): return self.__storage.get(self.__key(point), 0)
-
-	def set(self, point, value): self.__storage[self.__key(point)] = value
-	
-	def increment(self, point, value):
-		key = self.__key(point)
-		self.__storage[key] = self.__storage.get(key, 0) + value
-	
-	def items(self):
-		for key,value in self.__storage.items():
-			yield dict(zip(self.__schedule, key)), value
-
-def northwind(table_name, **adjust):
+def northwind(table_name):
 	"""
 	Yield a stream of "records" as dictionaries, with certain adjustments.
 	
@@ -61,6 +38,38 @@ def northwind(table_name, **adjust):
 		heads = [h.lower() for h in split(next(text))]
 		for tails in text:
 			row = dict(zip(heads, split(tails)))
-			for k,fn in adjust.items(): row[k] = fn(row[k])
 			yield row
 
+#----------------------------------------------------------------------------------------------------
+#
+# Let's do something even less sophisticated:
+
+class KissTensor(AbstractTensor):
+	def __init__(self, table_name, key_space:Dict[str,Callable[[str],object]], field:str):
+		self.__table_name = table_name
+		self.__key_space = key_space
+		self.__field = field
+	def stream(self) -> Generator:
+		for row in northwind(self.__table_name):
+			point = {k:fn(row[k]) for k,fn in self.__key_space.items()}
+			value = float(row[self.__field])
+			yield point, value
+	
+	def space(self) -> Space:
+		return frozenset(self.__key_space.keys())
+
+
+def sample_universe() -> Universe:
+	universe = Universe({
+		'productid': Dimension(),
+		'orderid': Dimension(),
+		'shipcountry': Dimension(),
+	})
+	
+	key_space = dict(productid=int, orderid=int)
+	universe.register_tensor('quantity_sold', KissTensor('order-details', key_space, 'quantity'))
+	universe.register_tensor('unit_price', KissTensor('order-details', key_space, 'unitprice'))
+	universe.register_tensor('discount_rate', KissTensor('order-details', key_space, 'discount'))
+	
+	return universe
+	

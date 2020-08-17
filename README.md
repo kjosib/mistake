@@ -67,17 +67,18 @@ the most sense, and write *Mistake* code where *Mistake* makes the most sense.
 
 ## Where do we stand?
 
-Very little. It's still mostly conceptual:
+Some bits probably work, but it's still mostly conceptual.
 
 * There is a `sandbox` folder with some embryonic bits that
   are slowly growing into a usable system.
-* There is a grammar file at `src/mistake/mistake_grammar.md`.
+    * Some of those bits are automated tests.
+    * There's an entry point at `sandbox/cradle.py`. It was
+      focused on the basics of semantic validation, but remains
+      quite capable of scribbling all over `STDERR`.
+* The grammar file is at `src/mistake/mistake_grammar.md`.
 * The `docs` folder contains design considerations.
+    * At the moment, the most important of these is KISS: "Keep it simple, Sally!"
 * Some modicum of functionality is in the `src/mistake` folder.
-
-The main entry point right now is at `sandbox/cradle.py`. It's currently
-focused on developing a simple validation layer. Don't be surprised when
-it vomits all over `STDERR`: that is literally its job.
 
 If you want to play with this, it's currently better to
 work from a copy of the github version.

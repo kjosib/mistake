@@ -2,6 +2,16 @@
 
 This file is a temporary holding pen for ideas that don't yet have a better home.
 
+## Units of Measure
+
+As a general rule, one should only add or subtract numbers corresponding to the same
+units of measure. On the other hand, multiplication and division can create new units,
+and so the unit-of-measure algebra needs to be defined.
+
+Furthermore, some units are dependent on their "ordinal" -- at least in a certain respect.
+Consider a shopping basket: it has quantities, but you shouldn't add quantities of APPLES
+and ORANGES unless you're prepared to have a resulting unit of FRUIT.
+
 ## Query Planning
 
 So this is about the time I begin to figure the validator could also plan queries.
@@ -11,15 +21,13 @@ an object consisting of both type and plan. In case of a mis-typed expression, t
 if parts of a domain model are ill-typed, the well-typed parts can still function.
 That may have considerable practical value.
 
-## Proper Automatic Testing
+At some point it's going to be necessary to adjust the internals and API so that
+plug-in data sources can understand the query that's made of them.
 
-Most of the juicy bits are about the system catching broken expressions.
-Since the validator object takes a "complain" function as a parameter,
-it's well-suited to unit-testing: just pass it a function that tells
-the test suite (not the end user) what's going on. That'll be coming.
-
-A "space assertion" provides a way to check the validator's work for
-the portion of tests where it *is* expected to succeed.
+Another step will be decoupling the exact structure of tensor-expressions from the
+objects that satisfy them: this will enable a level of automatic memoization for
+cases where client code needs to run essentially the same query with several different
+global parameters. (Oh yeah. I haven't talked about global parameters yet.)
 
 ## Proper Documentation
 
@@ -132,3 +140,15 @@ operation which the time dimension may provide for.)
 
 More generally, we can track where our numbers came from to make sure we are operating on
 them in sensible ways.
+
+## "Sibling" Tensors
+
+Frequently data is organized so that measures with a common key space use the same index.
+If a binary element-wise operation involves arguments with a common index, then it's
+probably more efficient to interleave the operations with the retrieval rather than use
+an intermediate structure.
+
+By contrast, if an intermediate structure MUST be created, then the one estimated to have
+the smaller volume of data is likely to be the better one to work with.
+
+Now all the sudden this looks a bit like a register allocator -- but that's because it is.

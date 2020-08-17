@@ -4,34 +4,36 @@ from boozetools.support import runtime as brt
 from boozetools.support.interfaces import Scanner
 from . import utility
 
+Span = Tuple[int,int]
+
 TABLES = utility.tables(__file__, 'mistake_grammar.md')
 
 class Name(NamedTuple):
-	text:str
-	span:Tuple[int,int]
+	text: str
+	span: Span
 
 class DefineTensor(NamedTuple):
-	name:Name
+	name: Name
 	expr:object
 
 class TensorSum(NamedTuple):
 	a_exp: object
-	span:Tuple[int,int]
+	span: Span
 	b_exp: object
 
 class Difference(NamedTuple):
 	a_exp: object
-	span:Tuple[int,int]
+	span: Span
 	b_exp: object
 
 class Product(NamedTuple):
 	a_exp: object
-	span:Tuple[int,int]
+	span: Span
 	b_exp: object
 
 class Quotient(NamedTuple):
 	a_exp: object
-	span:Tuple[int,int]
+	span: Span
 	b_exp: object
 
 class ScaleBy(NamedTuple):
@@ -39,13 +41,15 @@ class ScaleBy(NamedTuple):
 	factor: Number
 
 class Aggregation(NamedTuple):
+	""" An aggregation is meant to sum over all un-mentioned dimensions. It assumes they may be summed over. """
 	a_exp: object
+	keyword_span: Span
 	new_space:List[Name]
 
 class Criterion(NamedTuple):
-	axis:Name
-	relop:str
-	scalar:object
+	axis: Name
+	relop: str
+	scalar: object
 
 class Multiplex(NamedTuple):
 	if_true: object
@@ -54,6 +58,7 @@ class Multiplex(NamedTuple):
 
 class MappingExpression(NamedTuple):
 	domain: List[Name]
+	op_span: Span
 	range: List[Name]
 
 class SumImage(NamedTuple):
@@ -78,7 +83,7 @@ class Parser(brt.TypicalApplication):
 		text = yy.matched_text().lower() # By this the language is made caseless.
 		if text in self.RESERVED_WORDS:
 			if text in self.MONTHS: yy.token('month', self.MONTHS[text])
-			else: yy.token(text)
+			else: yy.token(text, yy.current_span()) # Sometimes the location of a keyword is used for error reporting.
 		else: yy.token("id", Name(text, yy.current_span()))
 	
 	def scan_relop(self, yy:Scanner, which):
