@@ -2,6 +2,10 @@
 
 This file is a temporary holding pen for ideas that don't yet have a better home.
 
+## Map Reduce
+
+Yeah. Eventually most of this will boil down to a map-reduce pipeline.
+
 ## Units of Measure
 
 As a general rule, one should only add or subtract numbers corresponding to the same

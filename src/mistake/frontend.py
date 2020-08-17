@@ -1,4 +1,4 @@
-from typing import NamedTuple, Tuple, List
+from typing import NamedTuple, Tuple, List, Optional
 from numbers import Number
 from boozetools.support import runtime as brt
 from boozetools.support.interfaces import Scanner
@@ -64,6 +64,8 @@ class MappingExpression(NamedTuple):
 class SumImage(NamedTuple):
 	a_exp: object
 	sums: List[MappingExpression]
+	by_span:Optional[Span] = None
+	space: Optional[List[Name]] = None
 
 class Parser(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
@@ -125,6 +127,7 @@ class Parser(brt.TypicalApplication):
 	parse_multiplex = staticmethod(Multiplex)
 	parse_mapping = staticmethod(MappingExpression)
 	parse_sum_image = staticmethod(SumImage)
+	parse_sum_image_onto = staticmethod(SumImage)
 	
 	@staticmethod
 	def parse_scale_by(t_exp, _, factor):

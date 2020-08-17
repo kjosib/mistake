@@ -71,5 +71,9 @@ def sample_universe() -> Universe:
 	universe.register_tensor('unit_price', KissTensor('order-details', key_space, 'unitprice'))
 	universe.register_tensor('discount_rate', KissTensor('order-details', key_space, 'discount'))
 	
+	orders = {int(row['orderid']):row for row in northwind('orders')}
+	
+	universe.register_attribute('orderid', 'shipcountry', lambda oid:orders[oid]['shipcountry'])
+	
 	return universe
 	

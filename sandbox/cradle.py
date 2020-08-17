@@ -33,7 +33,7 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 
 -- Now let's suppose I want to know how much revenue I've collected from each country:
 
-revenue_by_country is net_value sum { orderid -> shipcountry }
+revenue_by_country is net_value sum { orderid -> shipcountry } by [shipcountry]
 
 """
 
@@ -45,6 +45,6 @@ ast = parser.parse(__doc__)
 if ast is not None:
 	universe = toys.sample_universe()
 	planning.Planner(universe, parser.source.complain).visit(ast)
-	for p, v in universe.get_tensor('average_discount').stream():
+	for p, v in universe.get_tensor('revenue_by_country').stream():
 		print(p, round(v,2))
 

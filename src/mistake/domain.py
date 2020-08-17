@@ -5,7 +5,7 @@ sensible uses of data. Applications will import this to set up their schemas.
 This file is still very much in KISS mode.
 """
 
-from typing import AbstractSet, FrozenSet, Dict, NamedTuple, Callable, Generator, Mapping
+from typing import AbstractSet, FrozenSet, Dict, NamedTuple, Callable, Generator, Mapping, MutableMapping
 
 __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegistered', 'RandomAccessTensor']
 
@@ -91,12 +91,16 @@ class Universe:
 		self.__transforms = {}
 		self.__tensors = {}
 	
-	def register_transform(self, domain:Space, range_:Space, function:Callable[[Mapping],Mapping]):
+	def register_transform(self, domain:Space, range_:Space, transform:Callable[[MutableMapping], None]):
 		transform_type = Transform(frozenset(domain), frozenset(range_))
 		transform_type.validate_for_API()
 		if transform_type in self.__transforms: raise AlreadyRegistered(transform_type)
-		assert callable(function)
-		self.__transforms[transform_type] = function
+		assert callable(transform)
+		self.__transforms[transform_type] = transform
+	
+	def register_attribute(self, domain:str, range_:str, function):
+		def transform(p): p[range_] = function(p[domain])
+		self.register_transform({domain}, {range_}, transform)
 	
 	def register_tensor(self, name:str, tensor:AbstractTensor):
 		if name != name.lower(): raise ValueError(name)

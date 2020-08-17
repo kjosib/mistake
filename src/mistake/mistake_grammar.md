@@ -77,6 +77,7 @@ TENSOR_EXPRESSION -> FACTOR
     | _ '+' _             :tensor_sum
     | _ where PREDICATE else _  :multiplex
     | _ sum '{' SSL(MAPPING) '}'  :sum_image
+    | _ sum '{' SSL(MAPPING) '}' by SPACE  :sum_image_onto
 
 
 FACTOR -> id | '(' TENSOR_EXPRESSION ')'

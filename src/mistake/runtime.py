@@ -80,16 +80,16 @@ class ScaleTensor(AbstractTensor):
 			yield p, v * self.__factor
 
 class Transformation(AbstractTensor):
-	def __init__(self, basis: AbstractTensor, effective_space:Space, function:Callable[[Mapping],Mapping]):
+	def __init__(self, basis: AbstractTensor, effective_space:Space, transform:Callable[[Mapping],None]):
 		self.__basis = basis
 		self.__space = effective_space
-		self.__function = function
+		self.__transform = transform
 	def space(self) -> Space: return self.__space
 	def stream(self) -> Generator: return self.buffer().stream()
 	def buffer(self) -> TensorBuffer:
 		result = TensorBuffer(space=self.__space)
 		for p,v in self.__basis.stream():
-			p.update(self.__function(p))
+			self.__transform(p)
 			result.increment(p,v)
 		return result
 
