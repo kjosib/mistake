@@ -29,15 +29,19 @@ and nonsense over CSV files so that
 1. client-applications don't need to invent the wheel, and
 2. It provides a nice sample basis for doing fancier, smarter things with SQL.
 
-## What to Implement When
+## Bits that work, at least in some form:
 
-Not sure yet.
+* Simple type-judgements, including a text representation thereof.
+* Simple equations are translated to simple query-steps.
+* Query steps follow something of an interpreter-pattern.
 
-Probably start with some simple type-judgements and end by dumping out
-a text representation of these. So: Decide on a written-form of a type.
+## Bits yet to implement:
 
-Once a few of those work, then probably make some query-steps (interpreter
-pattern) and get a few simple things working.
+* Registry of environmental scalars
+* Pluggable API for query predicates
+
+## Bits I'm not sure about:
+* Maybe named predicates?
 
 From there, the rest should be mostly downhill. I do anticipate a speed-bump
 with data-catalogs, but not too bad with evolutionary development.
