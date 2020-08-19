@@ -4,8 +4,8 @@ AbstractTensor which work by sifting, filtering, and combining other Tensor obje
 
 Continuing to KEEP IT SIMPLE, SALLY!
 """
-from typing import Generator, Callable, Mapping
-from .domain import Space, AbstractTensor, Transform
+from typing import Generator, Callable, Mapping, Iterable, Tuple
+from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion
 
 class TensorBuffer(AbstractTensor):
 	""" Simplest conceivable storage class """
@@ -80,7 +80,7 @@ class ScaleTensor(AbstractTensor):
 			yield p, v * self.__factor
 
 class Transformation(AbstractTensor):
-	def __init__(self, basis: AbstractTensor, effective_space:Space, transform:Callable[[Mapping],None]):
+	def __init__(self, basis: AbstractTensor, effective_space:Space, transform:Transform):
 		self.__basis = basis
 		self.__space = effective_space
 		self.__transform = transform
@@ -89,7 +89,7 @@ class Transformation(AbstractTensor):
 	def buffer(self) -> TensorBuffer:
 		result = TensorBuffer(space=self.__space)
 		for p,v in self.__basis.stream():
-			self.__transform(p)
+			self.__transform.update(p)
 			result.increment(p,v)
 		return result
 
@@ -142,3 +142,28 @@ class Multiplex(AbstractTensor):
 			if self.__predicate(p): yield p,v
 		for p,v in self.__rhs.stream():
 			if not self.__predicate(p): yield p,v
+
+
+class TranslatedCriterion(AbstractCriterion):
+	"""
+	This would be used by Transformation nodes.
+	
+	Still in KISS mode, this may result in a given translation being
+	performed more than once, but again for the moment the resource
+	to be optimized is programmer time (and brainpower), not cycles.
+	"""
+	
+	def __init__(self, transform:Transform, basis:AbstractCriterion):
+		self.__transform = transform
+		self.__basis = basis
+		assert transform.range.issuperset(basis.domain())
+	
+	def test(self, point: Point) -> bool:
+		self.__transform.update(point)
+		return self.__basis.test(point)
+	
+	def domain(self) -> Space:
+		return self.__transform.domain
+	
+
+

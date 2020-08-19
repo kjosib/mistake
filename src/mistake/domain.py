@@ -5,11 +5,12 @@ sensible uses of data. Applications will import this to set up their schemas.
 This file is still very much in KISS mode.
 """
 
-from typing import AbstractSet, FrozenSet, Dict, NamedTuple, Callable, Generator, Mapping, MutableMapping
+from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable
 
 __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegistered', 'RandomAccessTensor']
 
-Space = AbstractSet[str]
+Space = FrozenSet[str]
+Point = Dict[str, Any]
 
 class AlreadyRegistered(Exception):
 	""" Lots of places maybe don't like to reuse the same names for different things. """
@@ -62,14 +63,51 @@ class Transform(NamedTuple):
 	In geometric applications these spaces be the same, but that's not my main idea.
 	I'm thinking more like "OrderID -> ShipCountry" or "Date -> Month".
 	"""
-	domain: FrozenSet[str]
-	range: FrozenSet[str]
+	domain: Space
+	range: Space
+	update: Callable[[Point], None]
 	def validate_for_API(self):
 		_validate_space(self.domain)
 		_validate_space(self.range)
 		assert self.range
-		
-			
+
+
+class AbstractCriterion:
+	"""
+	Let's get the basic operations down.
+	"""
+	
+	def test(self, point: Point) -> bool:
+		raise NotImplementedError(type(self))
+	
+	def domain(self) -> Space:
+		raise NotImplementedError(type(self))
+
+
+class Predicate:
+	"""
+	Presumably a predicate is just a collection of zero-or-more criteria.
+	"""
+	
+	def __init__(self, criteria: Iterable[AbstractCriterion]):
+		self.__criteria = list(criteria)
+	
+	def divmod(self, divisor: Space) -> Tuple["Predicate", "Predicate"]:
+		"""
+		This is in support of indexes. The idea is to skip loading blocks of data
+		that won't ultimately contribute to the answer to some query.
+		The "divisor" parameter represents the space over which your index is defined.
+		Then, you can use the quotient on the index and the modulus on the individual
+		data elements within selected index blocks.
+		"""
+		quotient, modulus = [], []
+		for criterion in self.__criteria:
+			(quotient if criterion.domain().issubset(divisor) else modulus).append(criterion)
+		return Predicate(quotient), Predicate(modulus)
+	
+	def test(self, point: Point) -> bool:
+		return all(criterion.test(point) for criterion in self.__criteria)
+
 
 class Universe:
 	"""
@@ -80,7 +118,7 @@ class Universe:
 	"""
 	
 	__dims: Dict[str,Dimension]
-	__transforms: Dict[Transform, Callable[[Dict], Dict]]
+	__transforms: Dict[Tuple[FrozenSet, FrozenSet], Transform]
 	__tensors: Dict[str, AbstractTensor]
 	
 	def __init__(self, dims:Dict[str,Dimension]):
@@ -91,16 +129,16 @@ class Universe:
 		self.__transforms = {}
 		self.__tensors = {}
 	
-	def register_transform(self, domain:Space, range_:Space, transform:Callable[[MutableMapping], None]):
-		transform_type = Transform(frozenset(domain), frozenset(range_))
-		transform_type.validate_for_API()
-		if transform_type in self.__transforms: raise AlreadyRegistered(transform_type)
-		assert callable(transform)
-		self.__transforms[transform_type] = transform
+	def register_transform(self, transform:Transform):
+		transform.validate_for_API()
+		key = (frozenset(transform.domain), frozenset(transform.range)) ## Defensive programming? Meh.
+		if key in self.__transforms: raise AlreadyRegistered(key)
+		else: self.__transforms[key] = transform
 	
 	def register_attribute(self, domain:str, range_:str, function):
-		def transform(p): p[range_] = function(p[domain])
-		self.register_transform({domain}, {range_}, transform)
+		def update(p): p[range_] = function(p[domain])
+		transform = Transform(frozenset((domain,)), frozenset((range_,)), update)
+		self.register_transform(transform)
 	
 	def register_tensor(self, name:str, tensor:AbstractTensor):
 		if name != name.lower(): raise ValueError(name)
@@ -112,7 +150,8 @@ class Universe:
 		return {name:tensor.space() for name, tensor in self.__tensors.items()}
 
 	def find_transform(self, domain:Space, range_:Space):
-		return self.__transforms.get(Transform(frozenset(domain), frozenset(range_)))
+		key = (frozenset(domain), frozenset(range_))
+		return self.__transforms.get(key)
 	
 	def get_tensor(self, name:str):
 		return self.__tensors[name]
