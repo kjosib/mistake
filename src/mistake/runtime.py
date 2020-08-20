@@ -5,45 +5,38 @@ AbstractTensor which work by sifting, filtering, and combining other Tensor obje
 Continuing to KEEP IT SIMPLE, SALLY!
 """
 from typing import Generator, Callable, Mapping, Iterable, Tuple
-from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion
+from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion, Predicate
 
-class TensorBuffer(AbstractTensor):
-	""" Simplest conceivable storage class """
+class TensorBuffer:
+	"""
+	I'm making an adjustment: henceforth a TensorBuffer is just an implementation
+	detail for other (streaming) tensors. Seen another way, the TensorBuffer is
+	involved in things that look more like "reduce", whereas the AbstractTensor
+	hierarchy has the "map" role.
 	
-	def __init__(self, *, space):
+	For now this bit remains somewhat simplistic.
+	"""
+	
+	def __init__(self, upstream:AbstractTensor, predicate:Predicate):
+		self.__upstream = upstream
 		self.__storage = {}
-		self.__schedule = tuple(space)
-	
-	def space(self) -> Space: return frozenset(self.__schedule)
-	
-	def __key(self, point) -> tuple:
-		# We can worry about the VALIDITY of keys later.
+		self.__schedule = tuple(upstream.space())
+		for point, value in self.__upstream.stream(predicate):
+			key = self.__key(point)
+			self.__storage[key] = self.__storage.get(key, 0) + value
+
+	def __key(self, point:Point) -> tuple:
+		""" Find the (hashable) indexing information for the given point """
 		return tuple(point[k] for k in self.__schedule)
 	
-	def get(self, point): return self.__storage.get(self.__key(point), 0)
+	def get(self, point:Point):
+		""" Return the value associated with a given point """
+		return self.__storage.get(self.__key(point), 0)
 	
-	def set(self, point, value): self.__storage[self.__key(point)] = value
-	
-	def increment(self, point, value):
-		key = self.__key(point)
-		self.__storage[key] = self.__storage.get(key, 0) + value
-	
-	def stream(self) -> Generator:
+	def content(self) -> Generator:
+		""" Yield up all the <point, value> pairs in the buffer. """
 		for key, value in self.__storage.items():
 			yield dict(zip(self.__schedule, key)), value
-	
-	def accumulate(self, tensor:AbstractTensor):
-		for point, value in tensor.stream():
-			self.increment(point, value)
-		return self
-	
-	def buffer(self): return self
-	
-	@staticmethod
-	def wrap(tensor:AbstractTensor) -> AbstractTensor:
-		if hasattr(tensor, 'get'): return tensor
-		if hasattr(tensor, 'buffer'): return tensor.buffer()
-		else: return TensorBuffer(space=tensor.space()).accumulate(tensor)
 	
 
 class SumTensor(AbstractTensor):
@@ -56,10 +49,11 @@ class SumTensor(AbstractTensor):
 	
 	def space(self) -> Space: return self.__lhs.space()
 	
-	def buffer(self) -> TensorBuffer:
-		return TensorBuffer(space=self.space()).accumulate(self.__lhs).accumulate(self.__rhs)
-
-	def stream(self) -> Generator: return self.buffer().stream()
+	def stream(self, predicate:Predicate) -> Generator:
+		# Note this could possibly yield increments to the same point twice. That's OK because
+		# points are incremental -- at least under the assumption that everything else is...
+		yield from self.__lhs.stream(predicate)
+		yield from self.__rhs.stream(predicate)
 
 def difference(lhs:AbstractTensor, rhs:AbstractTensor):
 	return SumTensor(lhs, ScaleTensor(rhs, -1))
@@ -75,8 +69,8 @@ class ScaleTensor(AbstractTensor):
 	def space(self) -> Space:
 		return self.__basis.space()
 	
-	def stream(self) -> Generator:
-		for p, v in self.__basis.stream():
+	def stream(self, predicate:Predicate) -> Generator:
+		for p, v in self.__basis.stream(predicate):
 			yield p, v * self.__factor
 
 class Transformation(AbstractTensor):
@@ -85,85 +79,52 @@ class Transformation(AbstractTensor):
 		self.__space = effective_space
 		self.__transform = transform
 	def space(self) -> Space: return self.__space
-	def stream(self) -> Generator: return self.buffer().stream()
-	def buffer(self) -> TensorBuffer:
-		result = TensorBuffer(space=self.__space)
-		for p,v in self.__basis.stream():
+	def stream(self, predicate:Predicate) -> Generator:
+		for p,v in self.__basis.stream(predicate.transformed(self.__transform)):
 			self.__transform.update(p)
-			result.increment(p,v)
-		return result
+			yield p,v
 
 class Aggregation(AbstractTensor):
 	def __init__(self, basis: AbstractTensor, effective_space: Space):
+		assert effective_space < basis.space()
 		self.__basis = basis
 		self.__space = effective_space
 	def space(self) -> Space: return self.__space
-	def stream(self) -> Generator: return self.buffer().stream()
-	def buffer(self) -> TensorBuffer:
-		return TensorBuffer(space=self.__space).accumulate(self.__basis)
+	def stream(self, predicate:Predicate) -> Generator:
+		return self.__basis.stream(predicate)
 
 class Product(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
 	def space(self) -> Space: return self.__lhs.space()
-	def stream(self) -> Generator:
-		denominator = TensorBuffer.wrap(self.__rhs)
-		for p,v in self.__lhs.stream():
+	def stream(self, predicate:Predicate) -> Generator:
+		denominator = TensorBuffer(self.__rhs, predicate)
+		for p,v in self.__lhs.stream(predicate):
 			yield p, v * denominator.get(p)
-	
-	def buffer(self) -> TensorBuffer:
-		return TensorBuffer(space=self.space()).accumulate(self)
 
 class Quotient(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
 	def space(self) -> Space: return self.__lhs.space()
-	def stream(self) -> Generator:
-		denominator = TensorBuffer.wrap(self.__rhs)
-		for p,v in self.__lhs.stream():
+	def stream(self, predicate:Predicate) -> Generator:
+		denominator = TensorBuffer(self.__rhs, predicate)
+		for p,v in self.__lhs.stream(predicate):
 			d = denominator.get(p)
 			if d: yield p, v/d
-	
-	def buffer(self) -> TensorBuffer:
-		return TensorBuffer(space=self.space()).accumulate(self)
 
 class Multiplex(AbstractTensor):
-	def __init__(self, lhs:AbstractTensor, predicate:Callable[[dict],bool], rhs:AbstractTensor):
+	def __init__(self, lhs:AbstractTensor, criteron:AbstractCriterion, rhs:AbstractTensor):
 		self.__lhs = lhs
-		self.__predicate = predicate
+		self.__criteron = criteron
 		self.__rhs = rhs
 	
 	def space(self) -> Space: return self.__lhs.space()
 	
-	def stream(self) -> Generator:
-		for p,v in self.__lhs.stream():
-			if self.__predicate(p): yield p,v
-		for p,v in self.__rhs.stream():
-			if not self.__predicate(p): yield p,v
+	def stream(self, predicate:Predicate) -> Generator:
+		yield from self.__lhs.stream(predicate.augmented(self.__criteron))
+		yield from self.__rhs.stream(predicate.augmented(self.__criteron.inverted()))
 
-
-class TranslatedCriterion(AbstractCriterion):
-	"""
-	This would be used by Transformation nodes.
-	
-	Still in KISS mode, this may result in a given translation being
-	performed more than once, but again for the moment the resource
-	to be optimized is programmer time (and brainpower), not cycles.
-	"""
-	
-	def __init__(self, transform:Transform, basis:AbstractCriterion):
-		self.__transform = transform
-		self.__basis = basis
-		assert transform.range.issuperset(basis.domain())
-	
-	def test(self, point: Point) -> bool:
-		self.__transform.update(point)
-		return self.__basis.test(point)
-	
-	def domain(self) -> Space:
-		return self.__transform.domain
-	
 
 

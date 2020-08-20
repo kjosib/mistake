@@ -6,10 +6,41 @@ These toys are meant for experimentation:
 	Neither organization nor documentation are assured.
 """
 
-from typing import Dict, Generator, Callable
-import zipfile, re
-from mistake.domain import Universe, Dimension, AbstractTensor, Space
+from typing import Dict, Generator, Callable, Any, NamedTuple
+import zipfile, re, operator
+from mistake.domain import Universe, Dimension, AbstractTensor, Space, Predicate, AbstractCriterion, Point, Transform
 
+#----------------------------------------------------------------------------------------------------
+# There's not a "countries" relation in the Northwind database, but I want the continent
+# attribute as a toy for playing with query predicates. This is every country mentioned
+# in the "orders" table mapped to its (nearest) continent.
+
+COUNTRY_CONTINENT = {
+	"Argentina": "South America",
+	"Austria": "Europe",
+	"Belgium": "Europe",
+	"Brazil": "South America",
+	"Canada": "North America",
+	"Denmark": "Europe",
+	"Finland": "Europe",
+	"France": "Europe",
+	"Germany": "Europe",
+	"Ireland": "Europe",
+	"Italy": "Europe",
+	"Mexico": "North America",
+	"Norway": "Europe",
+	"Poland": "Europe",
+	"Portugal": "Europe",
+	"Spain": "Europe",
+	"Sweden": "Europe",
+	"Switzerland": "Europe",
+	"UK": "Europe",
+	"USA": "North America",
+	"Venezuela": "South America",
+}
+
+def bcu(point): point['continent'] = COUNTRY_CONTINENT[point['shipcountry']]
+by_continent = Transform(frozenset(['shipcountry']), frozenset(['continent']), bcu)
 
 #----------------------------------------------------------------------------------------------------
 
@@ -40,23 +71,61 @@ def northwind(table_name):
 			row = dict(zip(heads, split(tails)))
 			yield row
 
-#----------------------------------------------------------------------------------------------------
-#
-# Let's do something even less sophisticated:
 
 class KissTensor(AbstractTensor):
 	def __init__(self, table_name, key_space:Dict[str,Callable[[str],object]], field:str):
 		self.__table_name = table_name
 		self.__key_space = key_space
 		self.__field = field
-	def stream(self) -> Generator:
+	
+	def stream(self, predicate:Predicate) -> Generator:
 		for row in northwind(self.__table_name):
 			point = {k:fn(row[k]) for k,fn in self.__key_space.items()}
-			value = float(row[self.__field])
-			yield point, value
+			if predicate.test(point): yield point, float(row[self.__field])
 	
 	def space(self) -> Space:
 		return frozenset(self.__key_space.keys())
+
+class RelOp(NamedTuple):
+	relop: str
+	inverse: str
+	fn: Callable[[Any, Any], bool]
+
+RELOP_CATALOG = {
+	'LT' : RelOp('LT', 'GE', operator.lt),
+	'LE' : RelOp('LE', 'GT', operator.le),
+	'EQ' : RelOp('EQ', 'NE', operator.eq),
+	'NE' : RelOp('NE', 'EQ', operator.ne),
+	'GE' : RelOp('GE', 'LT', operator.ge),
+	'GT' : RelOp('GT', 'LE', operator.gt),
+}
+
+class RelopCriterion(AbstractCriterion):
+	"""
+	This is your basic scalar comparison criterion.
+	Note that I'm not trying to do "between" because
+		(a) the inverse would be a disjunction, and
+		(b) it implies a partial order on the elements, and
+		(c) it leaves open the question of range endpoints.
+	Range criteria will be a separate class.
+	"""
+	def __init__(self, dim:str, relop:str, scalar:Any):
+		# NB: These attributes are made available in case
+		#     an index wants to exploit them in a manner smarter
+		#     than simply testing each element in turn.
+		self.dim, self.relop, self.scalar = dim, relop, scalar
+		
+		self.__space = frozenset([dim])
+		self.__fn = RELOP_CATALOG[relop].fn
+		
+	def test(self, point: Point) -> bool:
+		return self.__fn(point[self.dim], self.scalar)
+	
+	def domain(self) -> Space:
+		return self.__space
+	
+	def inverted(self) -> "AbstractCriterion":
+		return RelopCriterion(self.dim, RELOP_CATALOG[self.relop].inverse, self.scalar)
 
 
 def sample_universe() -> Universe:

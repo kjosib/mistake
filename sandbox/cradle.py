@@ -37,7 +37,7 @@ revenue_by_country is net_value sum { orderid -> shipcountry } by [shipcountry]
 
 """
 
-from mistake import frontend, planning
+from mistake import frontend, planning, domain, runtime
 import toys
 
 parser = frontend.Parser()
@@ -45,6 +45,9 @@ ast = parser.parse(__doc__)
 if ast is not None:
 	universe = toys.sample_universe()
 	planning.Planner(universe, parser.source.complain).visit(ast)
-	for p, v in universe.get_tensor('revenue_by_country').stream():
+	Europe = toys.RelopCriterion('continent', 'EQ', 'Europe')
+	predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
+	data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
+	for p, v in data.content():
 		print(p, round(v,2))
 

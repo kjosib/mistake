@@ -5,7 +5,7 @@ sensible uses of data. Applications will import this to set up their schemas.
 This file is still very much in KISS mode.
 """
 
-from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable
+from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable, AbstractSet
 
 __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegistered', 'RandomAccessTensor']
 
@@ -47,12 +47,15 @@ class AbstractTensor:
 	def space(self) -> Space:
 		raise NotImplementedError(type(self))
 	
-	def stream(self) -> Generator:
+	def stream(self, predicate:"Predicate") -> Generator:
 		"""
 		The current operational thinking is to yield "point-value" pairs.
 		In the extremely short run, this might get something (inefficient) off the ground.
 		Later it will be important to think about indexing and pushing queries back closer
 		to the source data.
+		
+		This method must respect the predicate. It is free to use any suitable means.
+		However, if this tensor works by delegation, it may also delegate that responsibility.
 		"""
 		raise NotImplementedError(type(self))
 
@@ -82,6 +85,33 @@ class AbstractCriterion:
 	
 	def domain(self) -> Space:
 		raise NotImplementedError(type(self))
+	
+	def inverted(self) -> "AbstractCriterion":
+		raise NotImplementedError(type(self))
+
+
+class TranslatedCriterion(AbstractCriterion):
+	"""
+	This would be used by Transformation nodes.
+
+	Still in KISS mode, this may result in a given translation being
+	performed more than once, but again for the moment the resource
+	to be optimized is programmer time (and brainpower), not cycles.
+	"""
+	
+	def __init__(self, transform: Transform, basis: AbstractCriterion):
+		self.__transform = transform
+		self.__basis = basis
+	
+	def test(self, point: Point) -> bool:
+		self.__transform.update(point)
+		return self.__basis.test(point)
+	
+	def domain(self) -> Space:
+		return self.__transform.domain
+	
+	def inverted(self) -> AbstractCriterion:
+		return TranslatedCriterion(self.__transform, self.__basis.inverted())
 
 
 class Predicate:
@@ -107,6 +137,17 @@ class Predicate:
 	
 	def test(self, point: Point) -> bool:
 		return all(criterion.test(point) for criterion in self.__criteria)
+	
+	def augmented(self, criterion:AbstractCriterion):
+		return Predicate(self.__criteria + [criterion])
+	
+	def transformed(self, transform:Transform):
+		# TODO: This is very simplistic. A given transform might have a better way to
+		#  handle the problem. However, that's not important for a first version.
+		return Predicate([
+			TranslatedCriterion(transform, c) if transform.range & c.domain() else c
+			for c in self.__criteria
+		])
 
 
 class Universe:
