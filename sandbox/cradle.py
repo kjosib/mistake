@@ -40,18 +40,14 @@ Mexico is revenue_by_country where shipcountry = 'Mexico'
 
 """
 
-from mistake import frontend, planning, domain, runtime
 import toys
 
-parser = frontend.Parser()
-ast = parser.parse(__doc__)
-if ast is not None:
-	universe = toys.sample_universe()
-	planning.Planner(universe, parser.source.complain).visit(ast)
-	# Europe = runtime.RelopCriterion('continent', 'EQ', 'Europe')
-	# predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
-	# data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
-	data = universe.query('Mexico')
-	for p, v in data.content():
-		print(p, round(v,2))
+# Europe = runtime.RelopCriterion('continent', 'EQ', 'Europe')
+# predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
+# data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
+
+universe = toys.sample_universe().script(__doc__)
+data = universe.query('Mexico')
+for p, v in data.content():
+	print(p, round(v,2))
 

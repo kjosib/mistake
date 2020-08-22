@@ -4,7 +4,7 @@ keep my wits about developing this package...
 """
 import unittest
 
-from mistake import frontend, planning, domain
+from mistake import frontend, planning
 import toys
 
 

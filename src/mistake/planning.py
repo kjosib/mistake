@@ -1,21 +1,15 @@
 """
-Change of Plans:
-
-Instead of ONLY performing semantic validation in one pass, the new thinking is to
-integrate validation with query planning.
-
-Everything in this module is about static analysis:
-determining whether the elements of a program are semantically
-sound -- or if otherwise, localizing the inconsistencies for easy
-diagnosis and repair.
+This is turning into the API submodule for
 """
-import operator
+
 from typing import Callable, Iterable, Dict, Tuple, FrozenSet
 from boozetools.support import foundation
 from . import frontend, runtime, domain
 
+__ALL__ = ['Universe', 'AlreadyRegistered']
+
 class AlreadyRegistered(Exception):
-	""" Lots of places maybe don't like to reuse the same names for different things. """
+	""" The key for some sort of registration API call has already been used in a previous call. """
 
 
 class Universe:
@@ -68,11 +62,28 @@ class Universe:
 	def query(self, name:str):
 		return runtime.TensorBuffer(self.get_tensor(name.lower()), domain.Predicate([]))
 
+	def script(self, text:str):
+		""" Call this to parse and load a script full of definitions. """
+		parser = frontend.Parser()
+		ast = parser.parse(text)
+		if ast is not None:
+			Planner(self, parser.source.complain).visit(ast)
+		return self
+
 class Invalid(Exception):
 	""" Arguments are span and message. """
 	def gripe(self, how): how(*self.args[0], message=self.args[1])
 
+
 class Planner(foundation.Visitor):
+	"""
+	This class integrates semantic validation with query planning.
+	It converts AST nodes (from the parser) into a suitable run-time
+	structure concurrent with static analysis to determine whether
+	the elements of each definition have sound semantics -- and if
+	otherwise, then localizing the inconsistencies for easy
+	diagnosis and repair.
+	"""
 	def __init__(self, universe:Universe, complain:Callable, verbose=False):
 		self.__universe = universe
 		self.__complain = complain
@@ -135,7 +146,8 @@ class Planner(foundation.Visitor):
 			if dim.text not in basis.space(): _unavailable(dim, basis.space())
 			new_space.add(dim.text)
 		# TODO: At this point, in theory we could have an invalid aggregation. However, I don't have the means to check yet.
-		
+		#  To clarify: Either a dimension might not be safe to sum over (yet we did) or a remaining dimension may
+		#  be strictly subordinate to one we DID sum over.
 		return runtime.Aggregation(basis, new_space)
 	
 	def visit_Name(self, n:frontend.Name) -> domain.AbstractTensor:
