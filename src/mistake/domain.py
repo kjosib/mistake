@@ -12,9 +12,6 @@ __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegi
 Space = FrozenSet[str]
 Point = Dict[str, Any]
 
-class AlreadyRegistered(Exception):
-	""" Lots of places maybe don't like to reuse the same names for different things. """
-
 def _validate_space(space:Space):
 	for d in space:
 		if not (isinstance(d, str)): raise TypeError('should have been string', type(d))
@@ -150,50 +147,3 @@ class Predicate:
 		])
 
 
-class Universe:
-	"""
-	Think of this as like a schema for a database. A "universe of discourse" has
-		1. a mapping from names to `Dimension` objects,
-		2. a registry of `TransformFunction` objects,
-		3. a registry of `AbstractTensor` objects.
-	"""
-	
-	__dims: Dict[str,Dimension]
-	__transforms: Dict[Tuple[FrozenSet, FrozenSet], Transform]
-	__tensors: Dict[str, AbstractTensor]
-	
-	def __init__(self, dims:Dict[str,Dimension]):
-		for k,v in dims.items():
-			assert k == k.lower(), "Dimension %r should have been lower-case."%k
-			assert isinstance(v, Dimension), "Oops! Dimension %r is mistakenly %r."%(k, type(v))
-		self.__dims = dims
-		self.__transforms = {}
-		self.__tensors = {}
-	
-	def register_transform(self, transform:Transform):
-		transform.validate_for_API()
-		key = (frozenset(transform.domain), frozenset(transform.range)) ## Defensive programming? Meh.
-		if key in self.__transforms: raise AlreadyRegistered(key)
-		else: self.__transforms[key] = transform
-	
-	def register_attribute(self, domain:str, range_:str, function):
-		def update(p): p[range_] = function(p[domain])
-		transform = Transform(frozenset((domain,)), frozenset((range_,)), update)
-		self.register_transform(transform)
-	
-	def register_tensor(self, name:str, tensor:AbstractTensor):
-		if name != name.lower(): raise ValueError(name)
-		if name in self.__tensors: raise AlreadyRegistered(name)
-		assert isinstance(tensor, AbstractTensor), type(tensor)
-		self.__tensors[name] = tensor
-	
-	def tensor_types(self) -> Dict[str, Space]:
-		return {name:tensor.space() for name, tensor in self.__tensors.items()}
-
-	def find_transform(self, domain:Space, range_:Space):
-		key = (frozenset(domain), frozenset(range_))
-		return self.__transforms.get(key)
-	
-	def get_tensor(self, name:str):
-		return self.__tensors[name]
-	

@@ -51,7 +51,7 @@ if ast is not None:
 	# Europe = runtime.RelopCriterion('continent', 'EQ', 'Europe')
 	# predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
 	# data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
-	data = runtime.TensorBuffer(universe.get_tensor('mexico'), domain.Predicate([]))
+	data = universe.query('Mexico')
 	for p, v in data.content():
 		print(p, round(v,2))
 

@@ -11,7 +11,7 @@ import toys
 class SmokeTest(unittest.TestCase):
 	""" When you turn it on, does smoke come out? """
 	
-	def case(self, expect_count:int, text:str) -> domain.Universe:
+	def case(self, expect_count:int, text:str) -> planning.Universe:
 		"""
 		The general idea is to throw some (grammatically-correct) stuff at the system and
 		expect a particular number of "complain" calls. We buffer the messages and compare

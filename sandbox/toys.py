@@ -8,7 +8,8 @@ These toys are meant for experimentation:
 
 from typing import Dict, Generator, Callable, Any, NamedTuple
 import zipfile, re, operator
-from mistake.domain import Universe, Dimension, AbstractTensor, Space, Predicate, AbstractCriterion, Point, Transform
+from mistake.domain import Dimension, AbstractTensor, Space, Predicate, Transform
+from mistake.planning import Universe
 
 #----------------------------------------------------------------------------------------------------
 # There's not a "countries" relation in the Northwind database, but I want the continent
