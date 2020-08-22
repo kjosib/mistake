@@ -13,7 +13,7 @@ import operator
 from typing import Callable, Iterable
 from boozetools.support import foundation
 from . import frontend, runtime
-from .domain import AbstractTensor, Universe
+from .domain import AbstractTensor, Universe, Space
 
 class Invalid(Exception):
 	""" Arguments are span and message. """
@@ -60,22 +60,17 @@ class Planner(foundation.Visitor):
 	def visit_Quotient(self, d: frontend.Difference): return runtime.Quotient(*self.__symmetric_types(*d))
 	
 	def visit_Multiplex(self, m:frontend.Multiplex):
-		dim = m.criterion.axis
-		lhs, rhs = self.__symmetric_types(m.if_true, dim.span, m.if_false)
-		if dim.text not in lhs.space(): _unavailable(dim, lhs.space())
-		return runtime.Multiplex(lhs, self.__make_predicate(dim.text, m.criterion.relop, m.criterion.scalar), rhs)
+		lhs, rhs = self.__symmetric_types(m.if_true, m.criterion.axis.span, m.if_false)
+		return runtime.Multiplex(lhs, self.visit(m.criterion, lhs.space()), rhs)
 	
-	def __make_predicate(self, dim, relop, scalar):
-		# TODO: make this into something that can drive query optimization.
-		op = {
-			'LT': operator.lt,
-			'LE': operator.le,
-			'EQ': operator.eq,
-			'NE': operator.ne,
-			'GE': operator.ge,
-			'GT': operator.gt,
-		}[relop]
-		return lambda point:op(point[dim], scalar)
+	def visit_Filter(self, f:frontend.Filter):
+		basis = self.visit(f.basis)
+		return runtime.Filter(basis, self.visit(f.criterion, basis.space()))
+	
+	def visit_Criterion(self, c:frontend.Criterion, space:Space) -> runtime.RelopCriterion:
+		if c.axis.text not in space: _unavailable(c.axis, space)
+		# TODO: Compare the argument and the relation to the type of the dimension.
+		return runtime.RelopCriterion(c.axis.text, c.relop, c.scalar)
 	
 	def visit_Aggregation(self, agg:frontend.Aggregation):
 		basis = self.visit(agg.a_exp)

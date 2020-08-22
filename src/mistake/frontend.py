@@ -56,6 +56,10 @@ class Multiplex(NamedTuple):
 	criterion: Criterion
 	if_false: object
 
+class Filter(NamedTuple):
+	basis: object
+	criterion: Criterion
+
 class MappingExpression(NamedTuple):
 	domain: List[Name]
 	op_span: Span
@@ -103,6 +107,9 @@ class Parser(brt.TypicalApplication):
 	def scan_token(self, yy:Scanner, kind:str):
 		yy.token(kind)
 	
+	def scan_string(self, yy:Scanner):
+		yy.token('string', yy.matched_text()[1:-1])
+	
 	def parse_first(self, stmt): return self.parse_subsequent([], stmt)
 	def parse_subsequent(self, module, stmt):
 		if stmt: module.append(stmt)
@@ -124,6 +131,7 @@ class Parser(brt.TypicalApplication):
 	parse_quotient = staticmethod(Quotient)
 	
 	parse_criterion = staticmethod(Criterion)
+	parse_filter = staticmethod(Filter)
 	parse_multiplex = staticmethod(Multiplex)
 	parse_mapping = staticmethod(MappingExpression)
 	parse_sum_image = staticmethod(SumImage)

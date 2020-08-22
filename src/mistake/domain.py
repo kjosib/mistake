@@ -60,6 +60,21 @@ class AbstractTensor:
 		raise NotImplementedError(type(self))
 
 
+class AbstractCriterion:
+	"""
+	Let's get the basic operations down.
+	"""
+	
+	def test(self, point: Point) -> bool:
+		raise NotImplementedError(type(self))
+	
+	def domain(self) -> Space:
+		raise NotImplementedError(type(self))
+	
+	def complement(self) -> "AbstractCriterion":
+		raise NotImplementedError(type(self))
+
+
 class Transform(NamedTuple):
 	"""
 	Describes the type of a function from points in one space to points in another.
@@ -73,21 +88,6 @@ class Transform(NamedTuple):
 		_validate_space(self.domain)
 		_validate_space(self.range)
 		assert self.range
-
-
-class AbstractCriterion:
-	"""
-	Let's get the basic operations down.
-	"""
-	
-	def test(self, point: Point) -> bool:
-		raise NotImplementedError(type(self))
-	
-	def domain(self) -> Space:
-		raise NotImplementedError(type(self))
-	
-	def inverted(self) -> "AbstractCriterion":
-		raise NotImplementedError(type(self))
 
 
 class TranslatedCriterion(AbstractCriterion):
@@ -110,8 +110,8 @@ class TranslatedCriterion(AbstractCriterion):
 	def domain(self) -> Space:
 		return self.__transform.domain
 	
-	def inverted(self) -> AbstractCriterion:
-		return TranslatedCriterion(self.__transform, self.__basis.inverted())
+	def complement(self) -> AbstractCriterion:
+		return TranslatedCriterion(self.__transform, self.__basis.complement())
 
 
 class Predicate:

@@ -86,47 +86,6 @@ class KissTensor(AbstractTensor):
 	def space(self) -> Space:
 		return frozenset(self.__key_space.keys())
 
-class RelOp(NamedTuple):
-	relop: str
-	inverse: str
-	fn: Callable[[Any, Any], bool]
-
-RELOP_CATALOG = {
-	'LT' : RelOp('LT', 'GE', operator.lt),
-	'LE' : RelOp('LE', 'GT', operator.le),
-	'EQ' : RelOp('EQ', 'NE', operator.eq),
-	'NE' : RelOp('NE', 'EQ', operator.ne),
-	'GE' : RelOp('GE', 'LT', operator.ge),
-	'GT' : RelOp('GT', 'LE', operator.gt),
-}
-
-class RelopCriterion(AbstractCriterion):
-	"""
-	This is your basic scalar comparison criterion.
-	Note that I'm not trying to do "between" because
-		(a) the inverse would be a disjunction, and
-		(b) it implies a partial order on the elements, and
-		(c) it leaves open the question of range endpoints.
-	Range criteria will be a separate class.
-	"""
-	def __init__(self, dim:str, relop:str, scalar:Any):
-		# NB: These attributes are made available in case
-		#     an index wants to exploit them in a manner smarter
-		#     than simply testing each element in turn.
-		self.dim, self.relop, self.scalar = dim, relop, scalar
-		
-		self.__space = frozenset([dim])
-		self.__fn = RELOP_CATALOG[relop].fn
-		
-	def test(self, point: Point) -> bool:
-		return self.__fn(point[self.dim], self.scalar)
-	
-	def domain(self) -> Space:
-		return self.__space
-	
-	def inverted(self) -> "AbstractCriterion":
-		return RelopCriterion(self.dim, RELOP_CATALOG[self.relop].inverse, self.scalar)
-
 
 def sample_universe() -> Universe:
 	universe = Universe({

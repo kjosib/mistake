@@ -7,7 +7,8 @@ initial "get things moving" module.
 As a sample working environment, I'm using the order_details table
 from (the enclosed copy of) the Northwind Traders database.
 
-This module has become a
+This module has become part proving ground, part playground as new
+ideas are explored and developed.
 -}
 
 gross is quantity_sold * unit_price -- Operations are are element-wise.
@@ -35,6 +36,8 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 
 revenue_by_country is net_value sum { orderid -> shipcountry } by [shipcountry]
 
+Mexico is revenue_by_country where shipcountry = 'Mexico'
+
 """
 
 from mistake import frontend, planning, domain, runtime
@@ -45,9 +48,10 @@ ast = parser.parse(__doc__)
 if ast is not None:
 	universe = toys.sample_universe()
 	planning.Planner(universe, parser.source.complain).visit(ast)
-	Europe = toys.RelopCriterion('continent', 'EQ', 'Europe')
-	predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
-	data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
+	# Europe = runtime.RelopCriterion('continent', 'EQ', 'Europe')
+	# predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
+	# data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
+	data = runtime.TensorBuffer(universe.get_tensor('mexico'), domain.Predicate([]))
 	for p, v in data.content():
 		print(p, round(v,2))
 

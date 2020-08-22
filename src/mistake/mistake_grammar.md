@@ -20,13 +20,16 @@ digits \d(_?\d)*
 
 <     :relop LT
 <=    :relop LE
-==    :relop EQ
-!=    :relop NE
+==?   :relop EQ
+<>|!=    :relop NE
 >=    :relop GE
 >     :relop GT
 
 {digits}            :integer
 {digits}\.{digits}  :real
+
+'.*'    |
+".*"    :string
 
 ->         |
 {punct}    :punctuation
@@ -75,6 +78,7 @@ TENSOR_EXPRESSION -> FACTOR
     | _ '/' _             :quotient
     | _ '-' _             :difference
     | _ '+' _             :tensor_sum
+    | _ where PREDICATE   :filter
     | _ where PREDICATE else _  :multiplex
     | _ sum '{' SSL(MAPPING) '}'  :sum_image
     | _ sum '{' SSL(MAPPING) '}' by SPACE  :sum_image_onto
@@ -84,7 +88,7 @@ FACTOR -> id | '(' TENSOR_EXPRESSION ')'
 
 PREDICATE -> id relop SCALAR    :criterion
 
-SCALAR -> integer | real
+SCALAR -> integer | real | string
 
 SPACE -> '[' NCSL(id) ']'
 

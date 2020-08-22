@@ -3,8 +3,18 @@ Elements of the runtime are (for now, at least) principally implementations of
 AbstractTensor which work by sifting, filtering, and combining other Tensor objects.
 
 Continuing to KEEP IT SIMPLE, SALLY!
+
+Just a note: there's a lot of parallelism between (most of) the structures defined here
+and those defined for the front-end parsing AST machinery. At least that's true today.
+You might think to just parse directly into these structures. I don't like that approach,
+though. I've tried it before (not on this project) and it results in a great deal of
+clutter. Part of why is that it's very challenging to keep track of which invariants
+apply to an object depending on what phase that object is in. I'm happier to be able
+to completely throw away the AST once it's no longer necessary. Objects defined in this
+file are a bit closer to the metal. Semantic soundness has already been checked. Etc.
 """
-from typing import Generator, Callable, Mapping, Iterable, Tuple
+import operator
+from typing import Generator, Callable, NamedTuple, Any
 from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion, Predicate
 
 class TensorBuffer:
@@ -115,16 +125,69 @@ class Quotient(AbstractTensor):
 			if d: yield p, v/d
 
 class Multiplex(AbstractTensor):
-	def __init__(self, lhs:AbstractTensor, criteron:AbstractCriterion, rhs:AbstractTensor):
+	def __init__(self, lhs:AbstractTensor, criterion:AbstractCriterion, rhs:AbstractTensor):
 		self.__lhs = lhs
-		self.__criteron = criteron
+		self.__criterion = criterion
 		self.__rhs = rhs
 	
 	def space(self) -> Space: return self.__lhs.space()
 	
 	def stream(self, predicate:Predicate) -> Generator:
-		yield from self.__lhs.stream(predicate.augmented(self.__criteron))
-		yield from self.__rhs.stream(predicate.augmented(self.__criteron.inverted()))
+		yield from self.__lhs.stream(predicate.augmented(self.__criterion))
+		yield from self.__rhs.stream(predicate.augmented(self.__criterion.complement()))
 
+class Filter(AbstractTensor):
+	def __init__(self, basis:AbstractTensor, criterion:AbstractCriterion):
+		self.__basis = basis
+		self.__criterion = criterion
+	
+	def space(self) -> Space: return self.__basis.space()
+
+	def stream(self, predicate:Predicate) -> Generator:
+		yield from self.__basis.stream(predicate.augmented(self.__criterion))
+
+
+##############################################################################
+
+class RelOp(NamedTuple):
+	relop: str
+	inverse: str
+	fn: Callable[[Any, Any], bool]
+
+RELOP_CATALOG = {
+	'LT' : RelOp('LT', 'GE', operator.lt),
+	'LE' : RelOp('LE', 'GT', operator.le),
+	'EQ' : RelOp('EQ', 'NE', operator.eq),
+	'NE' : RelOp('NE', 'EQ', operator.ne),
+	'GE' : RelOp('GE', 'LT', operator.ge),
+	'GT' : RelOp('GT', 'LE', operator.gt),
+}
+
+class RelopCriterion(AbstractCriterion):
+	"""
+	This is your basic scalar comparison criterion.
+	Note that I'm not trying to do "between" because
+		(a) the inverse would be a disjunction, and
+		(b) it implies a partial order on the elements, and
+		(c) it leaves open the question of range endpoints.
+	Range criteria will be a separate class.
+	"""
+	def __init__(self, dim:str, relop:str, scalar:Any):
+		# NB: These attributes are made available in case
+		#     an index wants to exploit them in a manner smarter
+		#     than simply testing each element in turn.
+		self.dim, self.relop, self.scalar = dim, relop, scalar
+		
+		self.__space = frozenset([dim])
+		self.__fn = RELOP_CATALOG[relop].fn
+		
+	def test(self, point: Point) -> bool:
+		return self.__fn(point[self.dim], self.scalar)
+	
+	def domain(self) -> Space:
+		return self.__space
+	
+	def complement(self) -> "AbstractCriterion":
+		return RelopCriterion(self.dim, RELOP_CATALOG[self.relop].inverse, self.scalar)
 
 
