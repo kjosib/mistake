@@ -13,7 +13,7 @@ ideas are explored and developed.
 
 gross is quantity_sold * unit_price -- Operations are are element-wise.
 discount is gross * discount_rate   -- Things are computed only if necessary.
-net_value is gross - discount   -- Enforce single-assignment: this line errors.
+net_value is gross - discount   -- Enforce single-assignment.
 net_value is gross              -- Ignore re-definition: this line also errors.
 foo is bar                      -- Cope with undefined names. 'foo' becomes defined but invalid.
 
@@ -36,7 +36,7 @@ nonsense_3 is net_value where ProductID < 1000 else discount -- This particular 
 
 revenue_by_country is net_value sum { orderid -> shipcountry } by [shipcountry]
 
-Mexico is revenue_by_country where shipcountry = 'Mexico'
+one_country is revenue_by_country where shipcountry = $country
 
 """
 
@@ -47,7 +47,7 @@ import toys
 # data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
 
 universe = toys.sample_universe().script(__doc__)
-data = universe.query('Mexico')
+data = universe.query('one_country', country='Mexico')
 for p, v in data.content():
 	print(p, round(v,2))
 

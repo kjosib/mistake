@@ -6,8 +6,8 @@ These toys are meant for experimentation:
 	Neither organization nor documentation are assured.
 """
 
-from typing import Dict, Generator, Callable, Any, NamedTuple
-import zipfile, re, operator
+from typing import Dict, Generator, Callable, Any, NamedTuple, Mapping
+import zipfile, re, datetime
 from mistake.domain import Dimension, AbstractTensor, Space, Predicate, Transform
 from mistake.planning import Universe
 
@@ -72,6 +72,8 @@ def northwind(table_name):
 			row = dict(zip(heads, split(tails)))
 			yield row
 
+def parse_date(date_time_str):
+	return datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S.%f')
 
 class KissTensor(AbstractTensor):
 	def __init__(self, table_name, key_space:Dict[str,Callable[[str],object]], field:str):
@@ -79,10 +81,10 @@ class KissTensor(AbstractTensor):
 		self.__key_space = key_space
 		self.__field = field
 	
-	def stream(self, predicate:Predicate) -> Generator:
+	def stream(self, predicate: Predicate, environment) -> Generator:
 		for row in northwind(self.__table_name):
 			point = {k:fn(row[k]) for k,fn in self.__key_space.items()}
-			if predicate.test(point): yield point, float(row[self.__field])
+			if predicate.test(point, environment): yield point, float(row[self.__field])
 	
 	def space(self) -> Space:
 		return frozenset(self.__key_space.keys())

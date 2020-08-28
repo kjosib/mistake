@@ -46,19 +46,19 @@ class Aggregation(NamedTuple):
 	keyword_span: Span
 	new_space:List[Name]
 
-class Criterion(NamedTuple):
+class ScalarComparison(NamedTuple):
 	axis: Name
 	relop: str
-	scalar: object
+	rhs: object
 
 class Multiplex(NamedTuple):
 	if_true: object
-	criterion: Criterion
+	criterion: object
 	if_false: object
 
 class Filter(NamedTuple):
 	basis: object
-	criterion: Criterion
+	criterion: object
 
 class MappingExpression(NamedTuple):
 	domain: List[Name]
@@ -73,7 +73,7 @@ class SumImage(NamedTuple):
 
 class Parser(brt.TypicalApplication):
 	MONTHS = {m:n for n,m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split(),1)}
-	RESERVED_WORDS = frozenset('else week where space tensor of is by sum'.split()) | MONTHS.keys()
+	RESERVED_WORDS = frozenset('by else in is means not of space sum tensor week where'.split()) | MONTHS.keys()
 	
 	def __init__(self):
 		super(Parser, self).__init__(TABLES)
@@ -107,6 +107,10 @@ class Parser(brt.TypicalApplication):
 	def scan_token(self, yy:Scanner, kind:str):
 		yy.token(kind)
 	
+	def scan_sigil(self, yy:Scanner, kind:str):
+		text = yy.matched_text()[1:].lower()
+		yy.token(kind, Name(text, yy.current_span()))
+	
 	def scan_string(self, yy:Scanner):
 		yy.token('string', yy.matched_text()[1:-1])
 	
@@ -130,7 +134,7 @@ class Parser(brt.TypicalApplication):
 	parse_product = staticmethod(Product)
 	parse_quotient = staticmethod(Quotient)
 	
-	parse_criterion = staticmethod(Criterion)
+	parse_criterion_relative = staticmethod(ScalarComparison)
 	parse_filter = staticmethod(Filter)
 	parse_multiplex = staticmethod(Multiplex)
 	parse_mapping = staticmethod(MappingExpression)

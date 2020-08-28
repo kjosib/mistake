@@ -5,7 +5,7 @@ sensible uses of data. Applications will import this to set up their schemas.
 This file is still very much in KISS mode.
 """
 
-from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable, AbstractSet
+from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable, Mapping
 
 __ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegistered', 'RandomAccessTensor']
 
@@ -44,7 +44,7 @@ class AbstractTensor:
 	def space(self) -> Space:
 		raise NotImplementedError(type(self))
 	
-	def stream(self, predicate:"Predicate") -> Generator:
+	def stream(self, predicate:"Predicate", environment:Mapping) -> Generator:
 		"""
 		The current operational thinking is to yield "point-value" pairs.
 		In the extremely short run, this might get something (inefficient) off the ground.
@@ -62,7 +62,7 @@ class AbstractCriterion:
 	Let's get the basic operations down.
 	"""
 	
-	def test(self, point: Point) -> bool:
+	def test(self, point: Point, environment:Mapping) -> bool:
 		raise NotImplementedError(type(self))
 	
 	def domain(self) -> Space:
@@ -100,9 +100,9 @@ class TranslatedCriterion(AbstractCriterion):
 		self.__transform = transform
 		self.__basis = basis
 	
-	def test(self, point: Point) -> bool:
+	def test(self, point: Point, environment:Mapping) -> bool:
 		self.__transform.update(point)
-		return self.__basis.test(point)
+		return self.__basis.test(point, environment)
 	
 	def domain(self) -> Space:
 		return self.__transform.domain
@@ -132,8 +132,8 @@ class Predicate:
 			(quotient if criterion.domain().issubset(divisor) else modulus).append(criterion)
 		return Predicate(quotient), Predicate(modulus)
 	
-	def test(self, point: Point) -> bool:
-		return all(criterion.test(point) for criterion in self.__criteria)
+	def test(self, point: Point, environment:Mapping) -> bool:
+		return all(criterion.test(point, environment) for criterion in self.__criteria)
 	
 	def augmented(self, criterion:AbstractCriterion):
 		return Predicate(self.__criteria + [criterion])

@@ -5,25 +5,29 @@ Let's begin with a few fairly-standard lexeme definitions:
 ## Definitions
 
 ```
-digits \d(_?\d)*
+digits       \d(_?\d)*
+identifier   \l\w*
 ```
 
 
 ## Patterns INITIAL
 
 ```
-\h+   :ignore whitespace
+\h+          :ignore whitespace
 (--.*)?\R    :token newline
-\{-   :enter BLOCK_COMMENT
+\{-          :enter BLOCK_COMMENT
 
-\l\w* :word
+{identifier}    :word
+\${identifier}  :sigil env_scalar
+@{identifier}   :sigil env_list
+&{identifier}   :sigil named_predicate
 
-<     :relop LT
-<=    :relop LE
-==?   :relop EQ
+<        :relop LT
+<=       :relop LE
+==?      :relop EQ
 <>|!=    :relop NE
->=    :relop GE
->     :relop GT
+>=       :relop GE
+>        :relop GT
 
 {digits}            :integer
 {digits}\.{digits}  :real
@@ -49,6 +53,7 @@ digits \d(_?\d)*
 
 ```
 %void where else week space tensor of is newline sum
+%void means not in
 %void '(' ')' '[' ']' '{' '}'
 %void ',' ';'
 
@@ -78,17 +83,26 @@ TENSOR_EXPRESSION -> FACTOR
     | _ '/' _             :quotient
     | _ '-' _             :difference
     | _ '+' _             :tensor_sum
-    | _ where PREDICATE   :filter
-    | _ where PREDICATE else _  :multiplex
+    | _ where CRITERION   :filter
+    | _ where CRITERION else _  :multiplex
     | _ sum '{' SSL(MAPPING) '}'  :sum_image
     | _ sum '{' SSL(MAPPING) '}' by SPACE  :sum_image_onto
 
 
 FACTOR -> id | '(' TENSOR_EXPRESSION ')'
 
-PREDICATE -> id relop SCALAR    :criterion
+CRITERION -> id relop SCALAR    :criterion_relative
+CRITERION -> id in SET          :criterion_within
+CRITERION -> id not in SET      :criterion_without
 
-SCALAR -> integer | real | string
+SCALAR -> integer | real | string | env_scalar
+
+SET -> env_list
+     | '{' CSL(SCALAR) '}'        :enumeration
+     | '(' SCALAR ',' SCALAR ')'  :open_interval
+     | '(' SCALAR ',' SCALAR ']'  :open_closed_interval
+     | '[' SCALAR ',' SCALAR ']'  :closed_interval
+     | '[' SCALAR ',' SCALAR ')'  :closed_open_interval
 
 SPACE -> '[' NCSL(id) ']'
 

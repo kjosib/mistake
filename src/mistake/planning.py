@@ -1,7 +1,6 @@
 """
 This is turning into the API submodule for
 """
-
 from typing import Callable, Iterable, Dict, Tuple, FrozenSet
 from boozetools.support import foundation
 from . import frontend, runtime, domain
@@ -11,6 +10,8 @@ __ALL__ = ['Universe', 'AlreadyRegistered']
 class AlreadyRegistered(Exception):
 	""" The key for some sort of registration API call has already been used in a previous call. """
 
+class UsageConflict(Exception):
+	""" The same-named query variable is used in conflicting ways. """
 
 class Universe:
 	"""
@@ -23,6 +24,7 @@ class Universe:
 	__dims: Dict[str,domain.Dimension]
 	__transforms: Dict[Tuple[FrozenSet, FrozenSet], domain.Transform]
 	__tensors: Dict[str, domain.AbstractTensor]
+	__variables: Dict[str, Tuple[str, bool]] # from variable name to (axis, plural)
 	
 	def __init__(self, dims:Dict[str,domain.Dimension]):
 		for k,v in dims.items():
@@ -31,6 +33,7 @@ class Universe:
 		self.__dims = dims
 		self.__transforms = {}
 		self.__tensors = {}
+		self.__variables = {}
 	
 	def register_transform(self, transform:domain.Transform):
 		transform.validate_for_API()
@@ -49,6 +52,10 @@ class Universe:
 		assert isinstance(tensor, domain.AbstractTensor), type(tensor)
 		self.__tensors[name] = tensor
 	
+	def cast_variable(self, name:str, axis:str, plural:bool):
+		if name not in self.__variables: self.__variables[name] = (axis, plural)
+		elif self.__variables[name] != (axis, plural): raise UsageConflict(name)
+	
 	def tensor_types(self) -> Dict[str, domain.Space]:
 		return {name:tensor.space() for name, tensor in self.__tensors.items()}
 
@@ -59,8 +66,11 @@ class Universe:
 	def get_tensor(self, name:str):
 		return self.__tensors[name]
 	
-	def query(self, name:str):
-		return runtime.TensorBuffer(self.get_tensor(name.lower()), domain.Predicate([]))
+	def query(self, name:str, /, **kwargs):
+		tensor = self.get_tensor(name.lower())
+		# TODO: Validate that the correct environment variables are provided,
+		#  and with a value acceptable to the variable's inferred dimension.
+		return runtime.TensorBuffer(tensor, domain.Predicate([]), kwargs)
 
 	def script(self, text:str):
 		""" Call this to parse and load a script full of definitions. """
@@ -131,10 +141,17 @@ class Planner(foundation.Visitor):
 		basis = self.visit(f.basis)
 		return runtime.Filter(basis, self.visit(f.criterion, basis.space()))
 	
-	def visit_Criterion(self, c:frontend.Criterion, space:domain.Space) -> runtime.RelopCriterion:
+	def visit_ScalarComparison(self, c:frontend.ScalarComparison, space:domain.Space) -> runtime.ScalarComparison:
 		if c.axis.text not in space: _unavailable(c.axis, space)
-		# TODO: Compare the argument and the relation to the type of the dimension.
-		return runtime.RelopCriterion(c.axis.text, c.relop, c.scalar)
+		if isinstance(c.rhs, frontend.Name):
+			try: self.__universe.cast_variable(c.rhs.text, c.axis.text, False)
+			except UsageConflict: _conflict(c.rhs)
+			scalar = runtime.Variable(c.rhs.text)
+		elif isinstance(c.rhs, (str,int,float)):
+			# TODO: Compare the argument and the relation to the type of the dimension.
+			scalar = runtime.Constant(c.rhs)
+		else: assert False, type(c.rhs)
+		return runtime.ScalarComparison(c.axis.text, c.relop, scalar)
 	
 	def visit_Aggregation(self, agg:frontend.Aggregation):
 		basis = self.visit(agg.a_exp)
@@ -153,7 +170,7 @@ class Planner(foundation.Visitor):
 	def visit_Name(self, n:frontend.Name) -> domain.AbstractTensor:
 		try: return self.__universe.get_tensor(n.text)
 		except KeyError:
-			if n.text in self.__type_env: raise (n.span, "ill-typed name.")
+			if n.text in self.__type_env: raise Invalid(n.span, "ill-typed name.")
 			else: raise Invalid(n.span, "undefined name.")
 	
 	def visit_ScaleBy(self, s:frontend.ScaleBy):
@@ -199,3 +216,6 @@ def _sequence(procedure, step):
 	if procedure is None: return step
 	def two_step(p): procedure(p); step(p)
 	return two_step
+
+def _conflict(var:frontend.Name):
+	raise Invalid(var.span, "Variable %r is used earlier in an incompatible manner. (It must agree in dimension and grammatical number.)"%var.text)

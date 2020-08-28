@@ -33,7 +33,7 @@ class SmokeTest(unittest.TestCase):
 			return universe
 		else:
 			emit_saved_complaints()
-			assert False
+			self.assertEqual(expect_count, len(actual))
 	
 	def test_smoke(self):
 		# It should at least do sensible things...
@@ -66,6 +66,44 @@ class SmokeTest(unittest.TestCase):
 			gross is quantity_sold
 		""")
 	
+	def test_compare_equal_to_environmental_scalar(self):
+		# Admittedly this is rather specific to the northwind data...
+		universe = self.case(0, """
+			something is (quantity_sold * unit_price) where orderid = $some_variable
+		""")
+		self.assertEqual(2, len(list(universe.query('something', some_variable=10256).content())))
+	
+	def test_enforce_single_assignment(self):
+		self.case(1, """
+			gross is quantity_sold * unit_price -- First assignment.
+			gross is quantity_sold * unit_price -- Second assignment should error, even if identical.
+		""")
+	
+	def test_refer_to_undefined_name(self):
+		self.case(2, """ foo is bar  -- 'foo' becomes defined but invalid. \n""")
+
+	def test_refer_to_invalid_name(self):
+		self.case(4, """
+			foo is bar  -- 'foo' becomes defined but invalid.
+			baz is foo  -- 'foo' is defined but invalid; baz is now also.
+		""")
+	
+	def test_reject_bogus_dimension_name(self):
+		self.case(2, """
+			invalid is quantity_sold by [bogus_dimension]
+		""")
+	
+	def test_symetric_operation_needs_symetric_arguments(self):
+		self.case(2, """
+			gross is quantity_sold * unit_price
+			discount is gross * discount_rate
+			broken_average is discount by [ProductID] / quantity_sold by [OrderID] -- rejects mismatched dimensions.
+		""")
+	
+	def test_reject_double_dimensions(self):
+		self.case(2, """
+			double_dim is quantity_sold by [ProductID, ProductID] -- reject repeated dimension in target space.
+		""")
 
 		
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ to completely throw away the AST once it's no longer necessary. Objects defined 
 file are a bit closer to the metal. Semantic soundness has already been checked. Etc.
 """
 import operator
-from typing import Generator, Callable, NamedTuple, Any
+from typing import Generator, Callable, NamedTuple, Any, Mapping
 from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion, Predicate
 
 class TensorBuffer:
@@ -27,11 +27,11 @@ class TensorBuffer:
 	For now this bit remains somewhat simplistic.
 	"""
 	
-	def __init__(self, upstream:AbstractTensor, predicate:Predicate):
+	def __init__(self, upstream:AbstractTensor, predicate:Predicate, environment:Mapping):
 		self.__upstream = upstream
 		self.__storage = {}
 		self.__schedule = tuple(upstream.space())
-		for point, value in self.__upstream.stream(predicate):
+		for point, value in self.__upstream.stream(predicate, environment):
 			key = self.__key(point)
 			self.__storage[key] = self.__storage.get(key, 0) + value
 
@@ -59,11 +59,11 @@ class SumTensor(AbstractTensor):
 	
 	def space(self) -> Space: return self.__lhs.space()
 	
-	def stream(self, predicate:Predicate) -> Generator:
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		# Note this could possibly yield increments to the same point twice. That's OK because
 		# points are incremental -- at least under the assumption that everything else is...
-		yield from self.__lhs.stream(predicate)
-		yield from self.__rhs.stream(predicate)
+		yield from self.__lhs.stream(predicate, environment)
+		yield from self.__rhs.stream(predicate, environment)
 
 def difference(lhs:AbstractTensor, rhs:AbstractTensor):
 	return SumTensor(lhs, ScaleTensor(rhs, -1))
@@ -79,8 +79,8 @@ class ScaleTensor(AbstractTensor):
 	def space(self) -> Space:
 		return self.__basis.space()
 	
-	def stream(self, predicate:Predicate) -> Generator:
-		for p, v in self.__basis.stream(predicate):
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		for p, v in self.__basis.stream(predicate, environment):
 			yield p, v * self.__factor
 
 class Transformation(AbstractTensor):
@@ -89,8 +89,8 @@ class Transformation(AbstractTensor):
 		self.__space = effective_space
 		self.__transform = transform
 	def space(self) -> Space: return self.__space
-	def stream(self, predicate:Predicate) -> Generator:
-		for p,v in self.__basis.stream(predicate.transformed(self.__transform)):
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		for p,v in self.__basis.stream(predicate.transformed(self.__transform), environment):
 			self.__transform.update(p)
 			yield p,v
 
@@ -100,17 +100,17 @@ class Aggregation(AbstractTensor):
 		self.__basis = basis
 		self.__space = effective_space
 	def space(self) -> Space: return self.__space
-	def stream(self, predicate:Predicate) -> Generator:
-		return self.__basis.stream(predicate)
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		return self.__basis.stream(predicate, environment)
 
 class Product(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
 	def space(self) -> Space: return self.__lhs.space()
-	def stream(self, predicate:Predicate) -> Generator:
-		denominator = TensorBuffer(self.__rhs, predicate)
-		for p,v in self.__lhs.stream(predicate):
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		denominator = TensorBuffer(self.__rhs, predicate, environment)
+		for p,v in self.__lhs.stream(predicate, environment):
 			yield p, v * denominator.get(p)
 
 class Quotient(AbstractTensor):
@@ -118,9 +118,9 @@ class Quotient(AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
 	def space(self) -> Space: return self.__lhs.space()
-	def stream(self, predicate:Predicate) -> Generator:
-		denominator = TensorBuffer(self.__rhs, predicate)
-		for p,v in self.__lhs.stream(predicate):
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		denominator = TensorBuffer(self.__rhs, predicate, environment)
+		for p,v in self.__lhs.stream(predicate, environment):
 			d = denominator.get(p)
 			if d: yield p, v/d
 
@@ -132,9 +132,9 @@ class Multiplex(AbstractTensor):
 	
 	def space(self) -> Space: return self.__lhs.space()
 	
-	def stream(self, predicate:Predicate) -> Generator:
-		yield from self.__lhs.stream(predicate.augmented(self.__criterion))
-		yield from self.__rhs.stream(predicate.augmented(self.__criterion.complement()))
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		yield from self.__lhs.stream(predicate.augmented(self.__criterion), environment)
+		yield from self.__rhs.stream(predicate.augmented(self.__criterion.complement()), environment)
 
 class Filter(AbstractTensor):
 	def __init__(self, basis:AbstractTensor, criterion:AbstractCriterion):
@@ -143,8 +143,8 @@ class Filter(AbstractTensor):
 	
 	def space(self) -> Space: return self.__basis.space()
 
-	def stream(self, predicate:Predicate) -> Generator:
-		yield from self.__basis.stream(predicate.augmented(self.__criterion))
+	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
+		yield from self.__basis.stream(predicate.augmented(self.__criterion), environment)
 
 
 ##############################################################################
@@ -163,7 +163,17 @@ RELOP_CATALOG = {
 	'GT' : RelOp('GT', 'LE', operator.gt),
 }
 
-class RelopCriterion(AbstractCriterion):
+
+class Value:
+	"""
+	We need an abstraction covering both constants and environmental variables.
+	"""
+	
+	def value(self, environment:Mapping) -> Any:
+		raise NotImplementedError(type(self))
+
+
+class ScalarComparison(AbstractCriterion):
 	"""
 	This is your basic scalar comparison criterion.
 	Note that I'm not trying to do "between" because
@@ -172,22 +182,27 @@ class RelopCriterion(AbstractCriterion):
 		(c) it leaves open the question of range endpoints.
 	Range criteria will be a separate class.
 	"""
-	def __init__(self, dim:str, relop:str, scalar:Any):
+	def __init__(self, dim:str, relop:str, scalar:Value):
 		# NB: These attributes are made available in case
 		#     an index wants to exploit them in a manner smarter
 		#     than simply testing each element in turn.
 		self.dim, self.relop, self.scalar = dim, relop, scalar
-		
 		self.__space = frozenset([dim])
 		self.__fn = RELOP_CATALOG[relop].fn
-		
-	def test(self, point: Point) -> bool:
-		return self.__fn(point[self.dim], self.scalar)
+	
+	def test(self, point: Point, environment:Mapping) -> bool:
+		return self.__fn(point[self.dim], self.scalar.value(environment))
 	
 	def domain(self) -> Space:
 		return self.__space
 	
 	def complement(self) -> "AbstractCriterion":
-		return RelopCriterion(self.dim, RELOP_CATALOG[self.relop].inverse, self.scalar)
+		return ScalarComparison(self.dim, RELOP_CATALOG[self.relop].inverse, self.scalar)
 
+class Constant(Value):
+	def __init__(self, value:Any): self.__value = value
+	def value(self, environment:Mapping) -> Any: return self.__value
 
+class Variable(Value):
+	def __init__(self, name:str): self.__name = name
+	def value(self, environment:Mapping) -> Any: return environment[self.__name]

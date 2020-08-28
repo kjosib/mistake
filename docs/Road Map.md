@@ -34,14 +34,38 @@ and nonsense over CSV files so that
 * Simple type-judgements, including a text representation thereof.
 * Simple equations are translated to simple query-steps.
 * Query steps follow something of an interpreter-pattern.
+* Query Input Variables (both scalar and list, with perl-style sigils)
+  although in principle the distinction could be done purely by context
+
+
+## Bits for which there is grammar but no further support:
+
+* Interval and set expressions for criteria
+
+## Bits with lexemes but no grammar:
+* Named predicates: The idea is these have some sort of input-space
+  and you can either supply a Python plug-in or declare them inline.
 
 ## Bits yet to implement:
 
-* Registry of environmental scalars
+* More operations on the internal notion of a "dimension" and in particular validating scalars.
+* Compare the argument and the relation to the type of the dimension.
 * Pluggable API for query predicates
+  * Maybe a couple different API levels for more or less
+    sophisticated plug-ins?
+* Filter on predicates derived from mappings
+* Syntax for trivial "get-attribute" mappings,
+  along with appropriate de-sugaring
+* Natural syntax for predicate composition
+  * Does this require more sophistication from a plug-in?
+* Rasterized Curves (these must know various extra bits)
+* Incremental vs. Cumulative Rasters.
+* Appropriate "promotion" strategy for mixing rasterized
+  and sparse expressions.
+  * Thus, plug-ins must report as raster-oriented or not.
+
 
 ## Bits I'm not sure about:
-* Maybe named predicates?
 
 From there, the rest should be mostly downhill. I do anticipate a speed-bump
 with data-catalogs, but not too bad with evolutionary development.
