@@ -6,7 +6,7 @@ have limits, and we should respect that.)
 This tickler-file lists deliberate oversimplifications
 that currently exist in the code base and/or general design.
 By writing them down somewhere I hope they will be neither
-forgotten not nitpicked.
+forgotten nor nitpicked.
 
 ----
 
@@ -42,6 +42,6 @@ pure straight-line activity.
 ----
 
 Demand loading of data: This is an important long-term goal,
-but it's not necessary in the short run. The key is to have
-some sort of cache-line concept (so data that lives together,
-loads together) but FOR NOW it can wait.
+but it's not necessary in the short run. The general idea is
+to have some sort of cache-line concept (so data that lives
+together, loads together) but FOR NOW it can wait.

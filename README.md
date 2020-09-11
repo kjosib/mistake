@@ -67,7 +67,7 @@ the most sense, and write *Mistake* code where *Mistake* makes the most sense.
 
 ## Where do we stand?
 
-Some bits probably work, but it's still mostly conceptual.
+Some bits work, but much is still conceptual.
 
 * There is a `sandbox` folder with some embryonic bits that
   are slowly growing into a usable system.
@@ -80,5 +80,18 @@ Some bits probably work, but it's still mostly conceptual.
     * At the moment, the most important of these is KISS: "Keep it simple, Sally!"
 * Some modicum of functionality is in the `src/mistake` folder.
 
-If you want to play with this, it's currently better to
-work from a copy of the github version.
+## How do you play with this?
+
+Although there is a package registered on PyPI, this is still at a stage
+where you probably want the docs and sandbox which are only part of what
+you get if you clone something off github. So should you clone MASTER or
+the latest tagged release? If you want something where all the tests are
+sure to pass, then grab a tagged release. If you want to follow progress
+and don't mind occasional breakage during this pre-alpha phase, consider
+cloning MASTER instead.
+
+In the `docs` folder, read the background and the road map before trying
+to understand the rest. Read the `KISS.md` file before judging things
+harshly. And please keep in mind this whole thing is as much about the
+semantic type-system as anything else (such as actual computation) at
+least for now.

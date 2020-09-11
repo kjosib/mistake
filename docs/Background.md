@@ -90,6 +90,11 @@ in your problem domain.
 
 ### Records, Arrays, and Subspaces
 
+After much thought it seems the best way to handle these is to treat record-like
+anisotropic ("ragged")
+structures as a sort of separate outer container for ordinary (rectilinear) tensors.
+They should compose into a tree structure with some sort of destructuring grammar.
+
 ## Limitations of the Theory
 
 Not everything in the program should be crammed into tensor logic. Practicalities

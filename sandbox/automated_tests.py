@@ -53,7 +53,7 @@ class SmokeTest(unittest.TestCase):
 			'bar' : {'productid'},
 		}.items():
 			with self.subTest(t):
-				self.assertEqual(s, universe.get_tensor(t).space())
+				self.assertEqual(s, universe.get_tensor(t).tensor_type()._space)
 	
 	def test_undefined_name(self):
 		# Note that using an undefined name causes a secondary complaint, which is

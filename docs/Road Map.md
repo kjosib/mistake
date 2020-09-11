@@ -29,6 +29,13 @@ and nonsense over CSV files so that
 1. client-applications don't need to invent the wheel, and
 2. It provides a nice sample basis for doing fancier, smarter things with SQL.
 
+## Bits I am *currently* working on:
+
+Slated for the next release:
+
+* Asymmetric Tensor Arithmetic operations: `o<` and `o>` for `o` in [`*+/-`].
+* Automated tests for the semantics module.
+
 ## Bits that work, at least in some form:
 
 * Simple type-judgements, including a text representation thereof.
@@ -48,12 +55,16 @@ and nonsense over CSV files so that
 
 ## Bits yet to implement:
 
-* More operations on the internal notion of a "dimension" and in particular validating scalars.
+* More operations on the internal notion of a "dimension":
+  * validating scalars.
+  * validating ranges/intervals/sets. (Intervals only when the dimension has a natural order.)
+  * validating order-type relops that there must be a natural order. (or provided collation?)
 * Compare the argument and the relation to the type of the dimension.
+  * I've forgotten what this means.
 * Pluggable API for query predicates
-  * Maybe a couple different API levels for more or less
-    sophisticated plug-ins?
+  * Maybe a couple different API levels for more or less sophisticated plug-ins?
 * Filter on predicates derived from mappings
+  * that is to say, apply a map and a filter without changing the "space"?
 * Syntax for trivial "get-attribute" mappings,
   along with appropriate de-sugaring
 * Natural syntax for predicate composition
@@ -63,7 +74,7 @@ and nonsense over CSV files so that
 * Appropriate "promotion" strategy for mixing rasterized
   and sparse expressions.
   * Thus, plug-ins must report as raster-oriented or not.
-
+* Some sort of simple (interactive?) outputs.
 
 ## Bits I'm not sure about:
 

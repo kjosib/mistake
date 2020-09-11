@@ -8,8 +8,9 @@ These toys are meant for experimentation:
 
 from typing import Dict, Generator, Callable, Any, NamedTuple, Mapping
 import zipfile, re, datetime
-from mistake.domain import Dimension, AbstractTensor, Space, Predicate, Transform
+from mistake.domain import Dimension, AbstractTensor, Predicate, Transform
 from mistake.planning import Universe
+from mistake import semantics
 
 #----------------------------------------------------------------------------------------------------
 # There's not a "countries" relation in the Northwind database, but I want the continent
@@ -80,14 +81,15 @@ class KissTensor(AbstractTensor):
 		self.__table_name = table_name
 		self.__key_space = key_space
 		self.__field = field
+		self.__tensor_type = semantics.TensorType(frozenset(self.__key_space.keys()))
 	
 	def stream(self, predicate: Predicate, environment) -> Generator:
 		for row in northwind(self.__table_name):
 			point = {k:fn(row[k]) for k,fn in self.__key_space.items()}
 			if predicate.test(point, environment): yield point, float(row[self.__field])
 	
-	def space(self) -> Space:
-		return frozenset(self.__key_space.keys())
+	def tensor_type(self) -> semantics.TensorType:
+		return self.__tensor_type
 
 
 def sample_universe() -> Universe:

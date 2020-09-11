@@ -3,19 +3,15 @@ Think "domain of discourse": This file should contain the bits that represent
 sensible uses of data. Applications will import this to set up their schemas.
 
 This file is still very much in KISS mode.
+It also stands a very good chance of completely dissipating into other modules.
 """
 
 from typing import Dict, NamedTuple, Callable, Generator, Any, Tuple, FrozenSet, Iterable, Mapping
-
-__ALL__ = ['Dimension', 'TensorType', 'AbstractTensor', 'Universe', 'AlreadyRegistered', 'RandomAccessTensor']
+from . import semantics
 
 Space = FrozenSet[str]
 Point = Dict[str, Any]
 
-def _validate_space(space:Space):
-	for d in space:
-		if not (isinstance(d, str)): raise TypeError('should have been string', type(d))
-		if d != d.lower(): raise ValueError('should have been lower-case', d)
 
 # Let's start with an algebra of structure spaces, with the goal of being able to
 # label the space-type associated with each expression in a program.
@@ -41,7 +37,7 @@ class AbstractTensor:
 	The runtime module must provide implementations for (so-to-speak) "query plans".
 	"""
 	
-	def space(self) -> Space:
+	def tensor_type(self) -> semantics.TensorType:
 		raise NotImplementedError(type(self))
 	
 	def stream(self, predicate:"Predicate", environment:Mapping) -> Generator:
@@ -81,10 +77,6 @@ class Transform(NamedTuple):
 	domain: Space
 	range: Space
 	update: Callable[[Point], None]
-	def validate_for_API(self):
-		_validate_space(self.domain)
-		_validate_space(self.range)
-		assert self.range
 
 
 class TranslatedCriterion(AbstractCriterion):

@@ -16,7 +16,21 @@ Furthermore, some units are dependent on their "ordinal" -- at least in a certai
 Consider a shopping basket: it has quantities, but you shouldn't add quantities of APPLES
 and ORANGES unless you're prepared to have a resulting unit of FRUIT.
 
+All this is to say that the unit-of-measure becomes part of the type of an expression, and the
+multiply/divide-type operations might reasonably be constrained to live within a known and
+registered algebra of quantities.
+
+It may also be worthwhile to attach units to (numerical) scalars where these act as conversion factors.
+This would need a bit of extra grammar then.
+
+How to represent all this? Absolute generality is not necessary. Just need a way to declare a unit
+and then also say that X * Y = Z on a unit basis. This COULD be done at the API but seems like a
+fine thing for an application-domain preamble. 
+
 ## Query Planning
+
+At this point what was once merely a type-judgment engine has become a system for planning
+queries. Despite its present adequacy, this system isn't terribly excellent.
 
 So this is about the time I begin to figure the validator could also plan queries.
 Simply put: instead of returning only the type of an expression, it could return
@@ -87,9 +101,9 @@ As an aside, a REPL should probably not create symbol table entries for broken d
 and it should also probably allow to reset (or maybe commit?) a vocabulary so far.
 
 
-## Curves:
+## Curves AKA Rasters:
 
-Along a time axis, these can be integrals or derivatives.
+Along a time-like axis, these can be integrals or derivatives.
 Derivatives are a sequence of increments. Integrals are a sequence of replacement values.
 Either kind of curve can possibly have a particular value in the "beginning of time" position.
 Absent such a value, the curve is considered to be all-zero before the first proper sample.
@@ -97,6 +111,7 @@ Absent such a value, the curve is considered to be all-zero before the first pro
 Thus, "beginning-of-time" (BOT) is a special distinguished kind of time ordinal which works like
 negative-infinity. Corresponding to positive-infinity is "end-of-time" (EOT) which doubtless
 adds clarity in various circumstances, but one should probably not have actual samples at EOT.
+
 
 ## Axis Types:
 

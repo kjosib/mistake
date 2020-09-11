@@ -16,6 +16,7 @@ file are a bit closer to the metal. Semantic soundness has already been checked.
 import operator
 from typing import Generator, Callable, NamedTuple, Any, Mapping
 from .domain import Space, Point, AbstractTensor, Transform, AbstractCriterion, Predicate
+from . import semantics
 
 class TensorBuffer:
 	"""
@@ -30,7 +31,7 @@ class TensorBuffer:
 	def __init__(self, upstream:AbstractTensor, predicate:Predicate, environment:Mapping):
 		self.__upstream = upstream
 		self.__storage = {}
-		self.__schedule = tuple(upstream.space())
+		self.__schedule = tuple(upstream.tensor_type()._space)
 		for point, value in self.__upstream.stream(predicate, environment):
 			key = self.__key(point)
 			self.__storage[key] = self.__storage.get(key, 0) + value
@@ -57,7 +58,7 @@ class SumTensor(AbstractTensor):
 		if hasattr(lhs, 'get') and hasattr(rhs, 'get'):
 			self.get = lambda point: lhs.get(point) + rhs.get(point)
 	
-	def space(self) -> Space: return self.__lhs.space()
+	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
 	
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		# Note this could possibly yield increments to the same point twice. That's OK because
@@ -76,8 +77,8 @@ class ScaleTensor(AbstractTensor):
 		if hasattr(basis, 'get'):
 			self.get = lambda point:basis.get(point) * factor
 	
-	def space(self) -> Space:
-		return self.__basis.space()
+	def tensor_type(self) -> semantics.TensorType:
+		return self.__basis.tensor_type()
 	
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		for p, v in self.__basis.stream(predicate, environment):
@@ -86,9 +87,9 @@ class ScaleTensor(AbstractTensor):
 class Transformation(AbstractTensor):
 	def __init__(self, basis: AbstractTensor, effective_space:Space, transform:Transform):
 		self.__basis = basis
-		self.__space = effective_space
+		self.__tensor_type = semantics.TensorType(effective_space)
 		self.__transform = transform
-	def space(self) -> Space: return self.__space
+	def tensor_type(self) -> semantics.TensorType: return self.__tensor_type
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		for p,v in self.__basis.stream(predicate.transformed(self.__transform), environment):
 			self.__transform.update(p)
@@ -96,10 +97,10 @@ class Transformation(AbstractTensor):
 
 class Aggregation(AbstractTensor):
 	def __init__(self, basis: AbstractTensor, effective_space: Space):
-		assert effective_space < basis.space()
+		assert effective_space < basis.tensor_type()._space
 		self.__basis = basis
-		self.__space = effective_space
-	def space(self) -> Space: return self.__space
+		self.__tensor_type = semantics.TensorType(effective_space)
+	def tensor_type(self) -> semantics.TensorType: return self.__tensor_type
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		return self.__basis.stream(predicate, environment)
 
@@ -107,7 +108,7 @@ class Product(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
-	def space(self) -> Space: return self.__lhs.space()
+	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		denominator = TensorBuffer(self.__rhs, predicate, environment)
 		for p,v in self.__lhs.stream(predicate, environment):
@@ -117,7 +118,7 @@ class Quotient(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
 		self.__lhs = lhs
 		self.__rhs = rhs
-	def space(self) -> Space: return self.__lhs.space()
+	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		denominator = TensorBuffer(self.__rhs, predicate, environment)
 		for p,v in self.__lhs.stream(predicate, environment):
@@ -130,7 +131,7 @@ class Multiplex(AbstractTensor):
 		self.__criterion = criterion
 		self.__rhs = rhs
 	
-	def space(self) -> Space: return self.__lhs.space()
+	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
 	
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		yield from self.__lhs.stream(predicate.augmented(self.__criterion), environment)
@@ -141,7 +142,7 @@ class Filter(AbstractTensor):
 		self.__basis = basis
 		self.__criterion = criterion
 	
-	def space(self) -> Space: return self.__basis.space()
+	def tensor_type(self) -> semantics.TensorType: return self.__basis.tensor_type()
 
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		yield from self.__basis.stream(predicate.augmented(self.__criterion), environment)

@@ -1,9 +1,9 @@
 """
 This is turning into the API submodule for
 """
-from typing import Callable, Iterable, Dict, Tuple, FrozenSet
+from typing import Callable, Iterable, Dict, Tuple, FrozenSet, Set, NamedTuple
 from boozetools.support import foundation
-from . import frontend, runtime, domain
+from . import frontend, runtime, domain, semantics
 
 __ALL__ = ['Universe', 'AlreadyRegistered']
 
@@ -12,6 +12,9 @@ class AlreadyRegistered(Exception):
 
 class UsageConflict(Exception):
 	""" The same-named query variable is used in conflicting ways. """
+
+class UnitProduct(NamedTuple):
+	""""""
 
 class Universe:
 	"""
@@ -25,6 +28,7 @@ class Universe:
 	__transforms: Dict[Tuple[FrozenSet, FrozenSet], domain.Transform]
 	__tensors: Dict[str, domain.AbstractTensor]
 	__variables: Dict[str, Tuple[str, bool]] # from variable name to (axis, plural)
+	__units: Set[str]
 	
 	def __init__(self, dims:Dict[str,domain.Dimension]):
 		for k,v in dims.items():
@@ -36,12 +40,22 @@ class Universe:
 		self.__variables = {}
 	
 	def register_transform(self, transform:domain.Transform):
-		transform.validate_for_API()
+		def validate_space(space):
+			for d in space:
+				if not (isinstance(d, str)): raise TypeError('should have been string', type(d))
+				if d != d.lower(): raise ValueError('should have been lower-case', d)
+				if d not in self.__dims: raise ValueError('dimension %r is not known.'%d)
+		
+		validate_space(transform.domain)
+		validate_space(transform.range)
+		assert transform.range
 		key = (frozenset(transform.domain), frozenset(transform.range)) ## Defensive programming? Meh.
 		if key in self.__transforms: raise AlreadyRegistered(key)
 		else: self.__transforms[key] = transform
 	
 	def register_attribute(self, domain_:str, range_:str, function):
+		# This should really be an aspect of a dimension.
+		# Attribute access (or mapping) should probably have corresponding grammar.
 		def update(p): p[range_] = function(p[domain_])
 		transform = domain.Transform(frozenset((domain_,)), frozenset((range_,)), update)
 		self.register_transform(transform)
@@ -57,7 +71,7 @@ class Universe:
 		elif self.__variables[name] != (axis, plural): raise UsageConflict(name)
 	
 	def tensor_types(self) -> Dict[str, domain.Space]:
-		return {name:tensor.space() for name, tensor in self.__tensors.items()}
+		return {name: tensor.tensor_type() for name, tensor in self.__tensors.items()}
 
 	def find_transform(self, domain_:Iterable[str], range_:Iterable[str]):
 		key = (frozenset(domain_), frozenset(range_))
@@ -80,9 +94,10 @@ class Universe:
 			Planner(self, parser.source.complain).visit(ast)
 		return self
 
-class Invalid(Exception):
-	""" Arguments are span and message. """
-	def gripe(self, how): how(*self.args[0], message=self.args[1])
+class Gripe(Exception):
+	""" The Planner raises this with target-language source diagnostic data. """
+	def __init__(self, span:Tuple[int, int], message:str): self.span, self.message = span, message
+	def gripe(self, how): how(*self.span, message=self.message)
 
 
 class Planner(foundation.Visitor):
@@ -108,13 +123,13 @@ class Planner(foundation.Visitor):
 			self.__complain(*dt.name.span, message="Tensor name was previously defined; ignoring redefinition.")
 		else:
 			try: tensor = self.visit(dt.expr)
-			except Invalid as e:
+			except Gripe as e:
 				self.__complain(*dt.name.span, message="Tensor value has invalid spatial type, because...")
 				e.gripe(self.__complain)
 				space = None
 			else:
 				self.__universe.register_tensor(dt.name.text, tensor) # Contains type assertion.
-				space = tensor.space()
+				space = tensor.tensor_type()
 				if self.__verbose: print(dt.name.text, 'has shape', sorted(space))
 			self.__type_env[dt.name.text] = space
 	
@@ -122,11 +137,9 @@ class Planner(foundation.Visitor):
 		lhs = self.visit(lhs_exp)
 		rhs = self.visit(rhs_exp)
 		assert isinstance(lhs, domain.AbstractTensor) and isinstance(rhs, domain.AbstractTensor)
-		if lhs.space() == rhs.space():
-			return lhs, rhs
-		else:
-			diff = set(lhs.space()).symmetric_difference(rhs.space())
-			raise Invalid(op_span, "Operand spaces do not agree about %r"%diff)
+		try: lhs.tensor_type().require_perfect_symetry(rhs.tensor_type())
+		except semantics.Invalid as e: raise Gripe(op_span, e.message) from None
+		else: return lhs, rhs
 	
 	def visit_TensorSum(self, d: frontend.TensorSum): return runtime.SumTensor(*self.__symmetric_types(*d))
 	def visit_Difference(self, d: frontend.Difference): return runtime.difference(*self.__symmetric_types(*d))
@@ -135,14 +148,15 @@ class Planner(foundation.Visitor):
 	
 	def visit_Multiplex(self, m:frontend.Multiplex):
 		lhs, rhs = self.__symmetric_types(m.if_true, m.criterion.axis.span, m.if_false)
-		return runtime.Multiplex(lhs, self.visit(m.criterion, lhs.space()), rhs)
+		return runtime.Multiplex(lhs, self.visit(m.criterion, lhs.tensor_type()), rhs)
 	
 	def visit_Filter(self, f:frontend.Filter):
 		basis = self.visit(f.basis)
-		return runtime.Filter(basis, self.visit(f.criterion, basis.space()))
+		return runtime.Filter(basis, self.visit(f.criterion, basis.tensor_type()))
 	
-	def visit_ScalarComparison(self, c:frontend.ScalarComparison, space:domain.Space) -> runtime.ScalarComparison:
-		if c.axis.text not in space: _unavailable(c.axis, space)
+	def visit_ScalarComparison(self, c:frontend.ScalarComparison, tt:semantics.TensorType) -> runtime.ScalarComparison:
+		assert isinstance(tt, semantics.TensorType), type(tt)
+		if c.axis.text not in tt._space: _unavailable(c.axis, tt._space)
 		if isinstance(c.rhs, frontend.Name):
 			try: self.__universe.cast_variable(c.rhs.text, c.axis.text, False)
 			except UsageConflict: _conflict(c.rhs)
@@ -155,12 +169,12 @@ class Planner(foundation.Visitor):
 	
 	def visit_Aggregation(self, agg:frontend.Aggregation):
 		basis = self.visit(agg.a_exp)
-		if isinstance(basis, Invalid): return basis
+		if isinstance(basis, Gripe): return basis
 		assert isinstance(basis, domain.AbstractTensor), [type(agg.a_exp), type(basis)]
 		new_space = set()
 		for dim in agg.new_space:
 			if dim.text in new_space: _already(dim)
-			if dim.text not in basis.space(): _unavailable(dim, basis.space())
+			if dim.text not in basis.tensor_type()._space: _unavailable(dim, basis.tensor_type()._space)
 			new_space.add(dim.text)
 		# TODO: At this point, in theory we could have an invalid aggregation. However, I don't have the means to check yet.
 		#  To clarify: Either a dimension might not be safe to sum over (yet we did) or a remaining dimension may
@@ -170,8 +184,8 @@ class Planner(foundation.Visitor):
 	def visit_Name(self, n:frontend.Name) -> domain.AbstractTensor:
 		try: return self.__universe.get_tensor(n.text)
 		except KeyError:
-			if n.text in self.__type_env: raise Invalid(n.span, "ill-typed name.")
-			else: raise Invalid(n.span, "undefined name.")
+			if n.text in self.__type_env: raise Gripe(n.span, "ill-typed name.")
+			else: raise Gripe(n.span, "undefined name.")
 	
 	def visit_ScaleBy(self, s:frontend.ScaleBy):
 		return self.visit(s.a_exp)
@@ -181,7 +195,7 @@ class Planner(foundation.Visitor):
 		# making multiple passes through the data.
 		basis = self.visit(si.a_exp)
 		assert isinstance(basis, domain.AbstractTensor), type(basis)
-		effective_space = set(basis.space())
+		effective_space = set(basis.tensor_type()._space)
 		procedure = None
 		for mx in si.sums:
 			# First, apply a simple textual test:
@@ -194,7 +208,7 @@ class Planner(foundation.Visitor):
 			# Next, do we have a registered function in the "universe" to perform this translation?
 			def texts(names): return [n.text for n in names]
 			step = self.__universe.find_transform(texts(mx.domain), texts(mx.range))
-			if step is None: raise Invalid(mx.op_span, "No known transform applies.")
+			if step is None: raise Gripe(mx.op_span, "No known transform applies.")
 			procedure = _sequence(procedure, step)
 		# Last step: Consider any explicit aggregation. (See also visit_Aggregation.)
 		if si.space is not None:
@@ -207,10 +221,10 @@ class Planner(foundation.Visitor):
 		return runtime.Transformation(basis, frozenset(effective_space), procedure)
 
 def _unavailable(dim:frontend.Name, ops:Iterable[str]):
-	raise Invalid(dim.span, "Dimension %r is not available here. options are %r." % (dim.text, sorted(ops)))
+	raise Gripe(dim.span, "Dimension %r is not available here. options are %r." % (dim.text, sorted(ops)))
 
 def _already(dim:frontend.Name):
-	raise Invalid(dim.span, "Dimension %r is already present and may not be duplicated."%dim.text)
+	raise Gripe(dim.span, "Dimension %r is already present and may not be duplicated." % dim.text)
 
 def _sequence(procedure, step):
 	if procedure is None: return step
@@ -218,4 +232,4 @@ def _sequence(procedure, step):
 	return two_step
 
 def _conflict(var:frontend.Name):
-	raise Invalid(var.span, "Variable %r is used earlier in an incompatible manner. (It must agree in dimension and grammatical number.)"%var.text)
+	raise Gripe(var.span, "Variable %r is used earlier in an incompatible manner. (It must agree in dimension and grammatical number.)" % var.text)
