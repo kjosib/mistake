@@ -24,16 +24,16 @@ class Universe:
 		3. a registry of `AbstractTensor` objects.
 	"""
 	
-	__dims: Dict[str,domain.Dimension]
+	__dims: Dict[str,semantics.Dimension]
 	__transforms: Dict[Tuple[FrozenSet, FrozenSet], domain.Transform]
 	__tensors: Dict[str, domain.AbstractTensor]
 	__variables: Dict[str, Tuple[str, bool]] # from variable name to (axis, plural)
 	__units: Set[str]
 	
-	def __init__(self, dims:Dict[str,domain.Dimension]):
+	def __init__(self, dims:Dict[str,semantics.Dimension]):
 		for k,v in dims.items():
 			assert k == k.lower(), "Dimension %r should have been lower-case."%k
-			assert isinstance(v, domain.Dimension), "Oops! Dimension %r is mistakenly %r."%(k, type(v))
+			assert isinstance(v, semantics.Dimension), "Oops! Dimension %r is mistakenly %r."%(k, type(v))
 		self.__dims = dims
 		self.__transforms = {}
 		self.__tensors = {}
@@ -137,7 +137,7 @@ class Planner(foundation.Visitor):
 		lhs = self.visit(lhs_exp)
 		rhs = self.visit(rhs_exp)
 		assert isinstance(lhs, domain.AbstractTensor) and isinstance(rhs, domain.AbstractTensor)
-		try: lhs.tensor_type().require_perfect_symetry(rhs.tensor_type())
+		try: lhs.tensor_type().require_perfect_symmetry(rhs.tensor_type())
 		except semantics.Invalid as e: raise Gripe(op_span, e.message) from None
 		else: return lhs, rhs
 	

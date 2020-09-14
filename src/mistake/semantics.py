@@ -13,6 +13,12 @@ class Invalid(Exception):
 	""" One generic exception for invalid semantics, with a string error code. Good enough for now.  """
 	def __init__(self, message:str): self.message = message
 
+
+class Dimension:
+	""" Abstract base class... """
+
+
+
 class TensorType:
 	"""
 	Just provide the set of dimensions at the moment.
@@ -21,6 +27,6 @@ class TensorType:
 	def __init__(self, space:Iterable[str]):
 		self._space = frozenset(space)
 	
-	def require_perfect_symetry(self, other:"TensorType"):
+	def require_perfect_symmetry(self, other:"TensorType"):
 		diff = self._space.symmetric_difference(other._space)
 		if diff: raise Invalid("Operand spaces do not agree about %r" % diff)

@@ -22,9 +22,6 @@ Point = Dict[str, Any]
 # However, a particular tensor will have both data and context.
 
 
-class Dimension:
-	""" Abstract base class... """
-
 class AbstractTensor:
 	"""
 	This ABC establishes the operations a tensor (expression) must support at runtime.

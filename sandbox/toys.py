@@ -8,7 +8,7 @@ These toys are meant for experimentation:
 
 from typing import Dict, Generator, Callable, Any, NamedTuple, Mapping
 import zipfile, re, datetime
-from mistake.domain import Dimension, AbstractTensor, Predicate, Transform
+from mistake.domain import AbstractTensor, Predicate, Transform
 from mistake.planning import Universe
 from mistake import semantics
 
@@ -94,9 +94,9 @@ class KissTensor(AbstractTensor):
 
 def sample_universe() -> Universe:
 	universe = Universe({
-		'productid': Dimension(),
-		'orderid': Dimension(),
-		'shipcountry': Dimension(),
+		'productid': semantics.Dimension(),
+		'orderid': semantics.Dimension(),
+		'shipcountry': semantics.Dimension(),
 	})
 	
 	key_space = dict(productid=int, orderid=int)

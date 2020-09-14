@@ -4,7 +4,7 @@ keep my wits about developing this package...
 """
 import unittest
 
-from mistake import frontend, planning
+from mistake import frontend, planning, semantics
 import toys
 
 
@@ -104,6 +104,32 @@ class SmokeTest(unittest.TestCase):
 		self.case(2, """
 			double_dim is quantity_sold by [ProductID, ProductID] -- reject repeated dimension in target space.
 		""")
+
+
+class TestSemantics(unittest.TestCase):
+	"""
+	Don't get hung up on the class name. It's a start.
+	
+	We need to be able to:
+		Make one or more of each kind of "type".
+		Perform various type-level comparisons, compositions, and promotions (correctly).
+			* Dimensional Symmetry
+			* Dimensional subset/superset
+			* Check that dropped dimensions may be summed over (or perhaps subjected to other ideas?)
+			* Check that a particular set of dimensions is valid (e.g. children have their parents along for the ride.)
+			* Check that types are add-compatible (i.e. same unit-of-measure, lost dimensions incremental, etc.)
+			* Compute the unit-of-measure for some product or quotient
+		Analyze a "type" for characteristics.
+		Ideally also be able to print out a "type" expression.
+	
+	These tests are all at the Python level independent of the syntax-directed translation.
+	"""
+	
+	def test_make_a_type(self):
+		foo = semantics.TensorType(['store', 'product', 'customer'])
+		assert isinstance(foo, semantics.TensorType)
+	
+	
 
 		
 if __name__ == "__main__":
