@@ -29,12 +29,12 @@ that may be processed. Spaces are much like types
 in conventional programming languages, but they've a richer semantics. They
 have structural equivalence rather than name-based equivalence.
 
-**Dimension:** A description of a set of possible (or reasonable) ordinals,
+**Axis:** A description of a set of possible (or reasonable) ordinals,
 along with formal-parameters.
 These have name-based equivalence.
 Much of this ties back to the application integration layer.
 
-## Kinds of Dimensions
+## Kinds of Axis
 
 **Linear:** The ordinals represent consecutive intervals in a clear linear progression.
 They can generally be grouped in a hierarchy from smaller to larger units

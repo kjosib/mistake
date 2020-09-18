@@ -46,7 +46,7 @@ import toys
 # predicate = domain.Predicate([Europe.inverted()]).transformed(toys.by_continent)
 # data = runtime.TensorBuffer(universe.get_tensor('revenue_by_country'), predicate)
 
-universe = toys.sample_universe().script(__doc__)
+universe = toys.sample_module().script(__doc__)
 data = universe.query('one_country', country='Mexico')
 for p, v in data.content():
 	print(p, round(v,2))

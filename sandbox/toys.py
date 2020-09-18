@@ -9,7 +9,7 @@ These toys are meant for experimentation:
 from typing import Dict, Generator, Callable, Any, NamedTuple, Mapping
 import zipfile, re, datetime
 from mistake.domain import AbstractTensor, Predicate, Transform
-from mistake.planning import Universe
+from mistake.planning import MistakeModule
 from mistake import semantics
 
 #----------------------------------------------------------------------------------------------------
@@ -92,21 +92,21 @@ class KissTensor(AbstractTensor):
 		return self.__tensor_type
 
 
-def sample_universe() -> Universe:
-	universe = Universe({
-		'productid': semantics.Dimension(),
-		'orderid': semantics.Dimension(),
-		'shipcountry': semantics.Dimension(),
-	})
+def sample_module() -> MistakeModule:
+	universe = semantics.UniverseOfDiscourse()
+	universe.enter(semantics.Axis(name='productid'))
+	universe.enter(semantics.Axis(name='orderid'))
+	universe.enter(semantics.Axis(name='shipcountry'))
+	module = MistakeModule(universe)
 	
 	key_space = dict(productid=int, orderid=int)
-	universe.register_tensor('quantity_sold', KissTensor('order-details', key_space, 'quantity'))
-	universe.register_tensor('unit_price', KissTensor('order-details', key_space, 'unitprice'))
-	universe.register_tensor('discount_rate', KissTensor('order-details', key_space, 'discount'))
+	module.register_tensor('quantity_sold', KissTensor('order-details', key_space, 'quantity'))
+	module.register_tensor('unit_price', KissTensor('order-details', key_space, 'unitprice'))
+	module.register_tensor('discount_rate', KissTensor('order-details', key_space, 'discount'))
 	
 	orders = {int(row['orderid']):row for row in northwind('orders')}
 	
-	universe.register_attribute('orderid', 'shipcountry', lambda oid:orders[oid]['shipcountry'])
+	module.register_attribute('orderid', 'shipcountry', lambda oid:orders[oid]['shipcountry'])
 	
-	return universe
+	return module
 	

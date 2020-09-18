@@ -11,7 +11,7 @@ import toys
 class SmokeTest(unittest.TestCase):
 	""" When you turn it on, does smoke come out? """
 	
-	def case(self, expect_count:int, text:str) -> planning.Universe:
+	def case(self, expect_count:int, text:str) -> planning.MistakeModule:
 		"""
 		The general idea is to throw some (grammatically-correct) stuff at the system and
 		expect a particular number of "complain" calls. We buffer the messages and compare
@@ -27,7 +27,7 @@ class SmokeTest(unittest.TestCase):
 		parser = frontend.Parser()
 		ast = parser.parse(text)
 		assert ast is not None
-		universe = toys.sample_universe()
+		universe = toys.sample_module()
 		planning.Planner(universe, note_complaint).visit(ast)
 		if len(actual) == expect_count:
 			return universe
@@ -128,7 +128,12 @@ class TestSemantics(unittest.TestCase):
 	def test_make_a_type(self):
 		foo = semantics.TensorType(['store', 'product', 'customer'])
 		assert isinstance(foo, semantics.TensorType)
-	
+		foo.require_perfect_symmetry(foo)
+		
+		bar = semantics.TensorType(['store', 'product', 'salesman'])
+		try: foo.require_perfect_symmetry(bar)
+		except semantics.Invalid: pass
+		else: assert False
 	
 
 		

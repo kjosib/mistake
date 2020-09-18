@@ -16,25 +16,22 @@ class UsageConflict(Exception):
 class UnitProduct(NamedTuple):
 	""""""
 
-class Universe:
+class MistakeModule:
 	"""
-	Think of this as like a schema for a database. A "universe of discourse" has
-		1. a mapping from names to `Dimension` objects,
+	Think of this as like a schema for a database. A application has
+		1. a universe of discourse
 		2. a registry of `TransformFunction` objects,
 		3. a registry of `AbstractTensor` objects.
 	"""
 	
-	__dims: Dict[str,semantics.Dimension]
 	__transforms: Dict[Tuple[FrozenSet, FrozenSet], domain.Transform]
 	__tensors: Dict[str, domain.AbstractTensor]
 	__variables: Dict[str, Tuple[str, bool]] # from variable name to (axis, plural)
 	__units: Set[str]
 	
-	def __init__(self, dims:Dict[str,semantics.Dimension]):
-		for k,v in dims.items():
-			assert k == k.lower(), "Dimension %r should have been lower-case."%k
-			assert isinstance(v, semantics.Dimension), "Oops! Dimension %r is mistakenly %r."%(k, type(v))
-		self.__dims = dims
+	def __init__(self, universe:semantics.UniverseOfDiscourse):
+		assert isinstance(universe, semantics.UniverseOfDiscourse), type(universe)
+		self.__universe = universe
 		self.__transforms = {}
 		self.__tensors = {}
 		self.__variables = {}
@@ -44,7 +41,9 @@ class Universe:
 			for d in space:
 				if not (isinstance(d, str)): raise TypeError('should have been string', type(d))
 				if d != d.lower(): raise ValueError('should have been lower-case', d)
-				if d not in self.__dims: raise ValueError('dimension %r is not known.'%d)
+				try: item = self.__universe[d]
+				except KeyError: raise ValueError('dimension %r is not known.'%d)
+				if not isinstance(item, semantics.Axis): raise ValueError('%r is a(n) %r, not an axis.'%(d, type(item)))
 		
 		validate_space(transform.domain)
 		validate_space(transform.range)
@@ -109,7 +108,7 @@ class Planner(foundation.Visitor):
 	otherwise, then localizing the inconsistencies for easy
 	diagnosis and repair.
 	"""
-	def __init__(self, universe:Universe, complain:Callable, verbose=False):
+	def __init__(self, universe:MistakeModule, complain:Callable, verbose=False):
 		self.__universe = universe
 		self.__complain = complain
 		self.__verbose = verbose
