@@ -53,7 +53,7 @@ class SmokeTest(unittest.TestCase):
 			'bar' : {'productid'},
 		}.items():
 			with self.subTest(t):
-				self.assertEqual(s, universe.get_tensor(t).tensor_type()._space)
+				self.assertEqual(s, universe.get_tensor(t).tensor_type().space)
 	
 	def test_undefined_name(self):
 		# Note that using an undefined name causes a secondary complaint, which is
@@ -126,11 +126,14 @@ class TestSemantics(unittest.TestCase):
 	"""
 	
 	def test_make_a_type(self):
-		foo = semantics.TensorType(['store', 'product', 'customer'])
+		universe = semantics.UniverseOfDiscourse()
+		universe.create_fundamental_unit('each')
+		
+		foo = semantics.TensorType(['store', 'product', 'customer'], universe['each'])
 		assert isinstance(foo, semantics.TensorType)
 		foo.require_perfect_symmetry(foo)
 		
-		bar = semantics.TensorType(['store', 'product', 'salesman'])
+		bar = semantics.TensorType(['store', 'product', 'salesman'], universe['each'])
 		try: foo.require_perfect_symmetry(bar)
 		except semantics.Invalid: pass
 		else: assert False

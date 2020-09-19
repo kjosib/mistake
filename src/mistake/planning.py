@@ -155,7 +155,7 @@ class Planner(foundation.Visitor):
 	
 	def visit_ScalarComparison(self, c:frontend.ScalarComparison, tt:semantics.TensorType) -> runtime.ScalarComparison:
 		assert isinstance(tt, semantics.TensorType), type(tt)
-		if c.axis.text not in tt._space: _unavailable(c.axis, tt._space)
+		if c.axis.text not in tt.space: _unavailable(c.axis, tt.space)
 		if isinstance(c.rhs, frontend.Name):
 			try: self.__universe.cast_variable(c.rhs.text, c.axis.text, False)
 			except UsageConflict: _conflict(c.rhs)
@@ -173,7 +173,7 @@ class Planner(foundation.Visitor):
 		new_space = set()
 		for dim in agg.new_space:
 			if dim.text in new_space: _already(dim)
-			if dim.text not in basis.tensor_type()._space: _unavailable(dim, basis.tensor_type()._space)
+			if dim.text not in basis.tensor_type().space: _unavailable(dim, basis.tensor_type().space)
 			new_space.add(dim.text)
 		# TODO: At this point, in theory we could have an invalid aggregation. However, I don't have the means to check yet.
 		#  To clarify: Either a dimension might not be safe to sum over (yet we did) or a remaining dimension may
@@ -194,7 +194,7 @@ class Planner(foundation.Visitor):
 		# making multiple passes through the data.
 		basis = self.visit(si.a_exp)
 		assert isinstance(basis, domain.AbstractTensor), type(basis)
-		effective_space = set(basis.tensor_type()._space)
+		effective_space = set(basis.tensor_type().space)
 		procedure = None
 		for mx in si.sums:
 			# First, apply a simple textual test:

@@ -31,7 +31,7 @@ class TensorBuffer:
 	def __init__(self, upstream:AbstractTensor, predicate:Predicate, environment:Mapping):
 		self.__upstream = upstream
 		self.__storage = {}
-		self.__schedule = tuple(upstream.tensor_type()._space)
+		self.__schedule = tuple(upstream.tensor_type().space)
 		for point, value in self.__upstream.stream(predicate, environment):
 			key = self.__key(point)
 			self.__storage[key] = self.__storage.get(key, 0) + value
@@ -87,7 +87,7 @@ class ScaleTensor(AbstractTensor):
 class Transformation(AbstractTensor):
 	def __init__(self, basis: AbstractTensor, effective_space:Space, transform:Transform):
 		self.__basis = basis
-		self.__tensor_type = semantics.TensorType(effective_space)
+		self.__tensor_type = semantics.TensorType(effective_space, basis.tensor_type().unit)
 		self.__transform = transform
 	def tensor_type(self) -> semantics.TensorType: return self.__tensor_type
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
@@ -97,9 +97,9 @@ class Transformation(AbstractTensor):
 
 class Aggregation(AbstractTensor):
 	def __init__(self, basis: AbstractTensor, effective_space: Space):
-		assert effective_space < basis.tensor_type()._space
+		assert effective_space < basis.tensor_type().space
 		self.__basis = basis
-		self.__tensor_type = semantics.TensorType(effective_space)
+		self.__tensor_type = semantics.TensorType(effective_space, basis.tensor_type().unit)
 	def tensor_type(self) -> semantics.TensorType: return self.__tensor_type
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		return self.__basis.stream(predicate, environment)

@@ -38,39 +38,58 @@ class Axis:
 		return sorted(set(attested_members), key=self.sort_key)
 
 
-class FundamentalUnit(NamedTuple):
-	name:str
-	fundamental_quantity:str # For instance dollars and euros are both money; feet and meters are both distance.
+class UnitOfMeasure:
+	"""
+	(most) Units are considered to represent a product of base-units raised to some (non-zero) power.
+	In fact this conflates the roles of units and quantities, but for this exercise it's good enough.
+	"""
+	
+	def __init__(self, powers:Dict[str,int]):
+		assert all(isinstance(base_unit,str) and isinstance(exp, int) for base_unit,exp in powers.items())
+		self.powers = powers
+	
+	def __mul__(self, other) -> "UnitOfMeasure":
+		if not isinstance(other, UnitOfMeasure): return NotImplemented
+		s, o, r = self.powers, other.powers, {}
+		for base_unit in self.powers.keys() | other.powers.keys():
+			p = s.get(base_unit,0) + o.get(base_unit,0)
+			if p: r[base_unit] = p
+		return UnitOfMeasure(r)
+	
+	def __invert__(self) -> "UnitOfMeasure":
+		return UnitOfMeasure({k: -v for k,v in self.powers.items()})
+	
+	def __truediv__(self, other) -> "UnitOfMeasure":
+		if not isinstance(other, UnitOfMeasure): return NotImplemented
+		return self * ~ other
 
-class DerivedUnit(NamedTuple):
-	name:str
-	#
+dimensionless = UnitOfMeasure({})
 
 class TensorType:
 	"""
-	Just provide the set of dimensions at the moment.
+	Just a set of axes and a unit of measure at the moment.
 	Later think about units of measure, stream vs. buffer, incremental vs. cumulative raster, etc.
 	"""
-	def __init__(self, space:Iterable[str]):
-		self._space = frozenset(space)
+	def __init__(self, space:Iterable[str], unit:UnitOfMeasure):
+		assert isinstance(unit, UnitOfMeasure), type(unit)
+		self.space = frozenset(space)
+		self.unit = unit
 	
 	def require_perfect_symmetry(self, other:"TensorType"):
-		diff = self._space.symmetric_difference(other._space)
+		diff = self.space.symmetric_difference(other.space)
 		if diff: raise Invalid("Operand spaces do not agree about %r" % sorted(diff))
 
 class UniverseOfDiscourse:
 	"""
 	A universe of discourse, in the context of the "Mistake" programming system,
 	is meant to model the type-level ideas about what can possibly ever make sense.
-	It can be thought of as a registry of dimensions, units of measure, and the
+	It can be thought of as a registry of axes, units of measure, and the
 	semantic relationships between these. It is abstracted from any particular
 	values, tensors, functions, etc. It's consulted mainly to see whether the
 	relationships implied by value-domain operations make sense in the type-domain.
 	
 	It necessarily has a mapping from names to one of a few kinds of objects:
 		* `Axis`
-		* `FundamentalUnit`
-		* `DerivedUnit`
 	
 	Pretty soon stuff about units of measure will start to get some implementation.
 	"""
@@ -79,13 +98,19 @@ class UniverseOfDiscourse:
 	
 	def __contains__(self, word:str): return word.lower() in self.lexicon
 	def __getitem__(self, word:str): return self.lexicon[word.lower()]
-	
-	def enter(self, entry):
-		assert isinstance(entry, (Axis, FundamentalUnit, DerivedUnit))
-		word = entry.name
+	def __enter(self, word, entry):
 		if word in self: raise Invalid("This word %r already has a definition."%word)
-		if isinstance(entry, Axis):
-			missing = entry.requires - self.lexicon.keys()
-			if missing: raise Invalid("This axis requires yet-undefined axes: %r"%missing)
 		self.lexicon[word.lower()] = entry
+
+	def register_axis(self, axis:Axis):
+		assert isinstance(axis, Axis)
+		if isinstance(axis, Axis):
+			missing = axis.requires - self.lexicon.keys()
+			if missing: raise Invalid("This axis requires yet-undefined axes: %r"%missing)
+		self.__enter(axis.name, axis)
 	
+	def create_fundamental_unit(self, name:str) -> UnitOfMeasure:
+		assert isinstance(name, str)
+		unit = UnitOfMeasure({name:1})
+		self.__enter(name, unit)
+		return unit

@@ -77,11 +77,12 @@ def parse_date(date_time_str):
 	return datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S.%f')
 
 class KissTensor(AbstractTensor):
-	def __init__(self, table_name, key_space:Dict[str,Callable[[str],object]], field:str):
+	def __init__(self, table_name, field:str, key_space:Dict[str,Callable[[str],object]], unit:semantics.UnitOfMeasure):
+		assert isinstance(unit, semantics.UnitOfMeasure), type(unit)
 		self.__table_name = table_name
 		self.__key_space = key_space
 		self.__field = field
-		self.__tensor_type = semantics.TensorType(frozenset(self.__key_space.keys()))
+		self.__tensor_type = semantics.TensorType(frozenset(self.__key_space.keys()), unit)
 	
 	def stream(self, predicate: Predicate, environment) -> Generator:
 		for row in northwind(self.__table_name):
@@ -94,15 +95,17 @@ class KissTensor(AbstractTensor):
 
 def sample_module() -> MistakeModule:
 	universe = semantics.UniverseOfDiscourse()
-	universe.enter(semantics.Axis(name='productid'))
-	universe.enter(semantics.Axis(name='orderid'))
-	universe.enter(semantics.Axis(name='shipcountry'))
+	widget = universe.create_fundamental_unit('widget')
+	dollar = universe.create_fundamental_unit('dollar')
+	universe.register_axis(semantics.Axis(name='productid'))
+	universe.register_axis(semantics.Axis(name='orderid'))
+	universe.register_axis(semantics.Axis(name='shipcountry'))
 	module = MistakeModule(universe)
 	
 	key_space = dict(productid=int, orderid=int)
-	module.register_tensor('quantity_sold', KissTensor('order-details', key_space, 'quantity'))
-	module.register_tensor('unit_price', KissTensor('order-details', key_space, 'unitprice'))
-	module.register_tensor('discount_rate', KissTensor('order-details', key_space, 'discount'))
+	module.register_tensor('quantity_sold', KissTensor('order-details', 'quantity', key_space, widget))
+	module.register_tensor('unit_price', KissTensor('order-details', 'unitprice', key_space, dollar/widget))
+	module.register_tensor('discount_rate', KissTensor('order-details', 'discount', key_space, semantics.dimensionless))
 	
 	orders = {int(row['orderid']):row for row in northwind('orders')}
 	
