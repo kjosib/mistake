@@ -76,9 +76,10 @@ Some bits work, but much is still conceptual.
       focused on the basics of semantic validation, but remains
       quite capable of scribbling all over `STDERR`.
 * The grammar file is at `src/mistake/mistake_grammar.md`.
-* The `docs` folder contains design considerations.
+* The `notes` folder contains design considerations.
     * At the moment, the most important of these is KISS: "Keep it simple, Sally!"
 * Some modicum of functionality is in the `src/mistake` folder.
+* The beginnings of user-level documentation is starting to appear on [readthedocs][docs]
 
 ## How do you play with this?
 
@@ -95,3 +96,5 @@ to understand the rest. Read the `KISS.md` file before judging things
 harshly. And please keep in mind this whole thing is as much about the
 semantic type-system as anything else (such as actual computation) at
 least for now.
+
+[docs]: http://mistake.readthedocs.io
