@@ -140,15 +140,22 @@ class TestSemantics(unittest.TestCase):
 	
 	def test_play_with_units(self):
 		universe = semantics.UniverseOfDiscourse()
-		length = universe.create_fundamental_unit('meter')
+		distance = universe.create_fundamental_unit('meter')
 		time = universe.create_fundamental_unit('second')
 		mass = universe.create_fundamental_unit('kilogram')
 		
-		velocity = length / time
+		velocity = distance / time
 		acceleration = velocity / time
 		force = mass * acceleration
 		
 		self.assertEqual('kilogram meter/second^2', str(force))
+		self.assertNotEqual(velocity,acceleration)
+		
+		# While we're at it, prove that care is still required
+		work = force * distance
+		torque = distance * force
+		self.assertEqual(str(work), str(torque))
+		self.assertEqual(work, torque)
 
 
 if __name__ == "__main__":

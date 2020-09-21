@@ -72,6 +72,9 @@ class UnitOfMeasure:
 		result = ' '.join(nums)
 		if dens: result += '/' + ' '.join(dens)
 		return result
+	
+	def __eq__(self, other):
+		return isinstance(other, UnitOfMeasure) and self.powers == other.powers
 
 dimensionless = UnitOfMeasure({})
 
