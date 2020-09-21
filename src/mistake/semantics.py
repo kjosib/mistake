@@ -62,6 +62,16 @@ class UnitOfMeasure:
 	def __truediv__(self, other) -> "UnitOfMeasure":
 		if not isinstance(other, UnitOfMeasure): return NotImplemented
 		return self * ~ other
+	
+	def __str__(self):
+		def power(x): return dim + ('^'+str(x) if x>1 else '')
+		nums, dens = [], []
+		for dim, exp in sorted(self.powers.items()):
+			if exp > 0: nums.append(power(exp))
+			else: dens.append(power(-exp))
+		result = ' '.join(nums)
+		if dens: result += '/' + ' '.join(dens)
+		return result
 
 dimensionless = UnitOfMeasure({})
 

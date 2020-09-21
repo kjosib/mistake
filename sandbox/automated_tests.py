@@ -138,7 +138,18 @@ class TestSemantics(unittest.TestCase):
 		except semantics.Invalid: pass
 		else: assert False
 	
-
+	def test_play_with_units(self):
+		universe = semantics.UniverseOfDiscourse()
+		length = universe.create_fundamental_unit('meter')
+		time = universe.create_fundamental_unit('second')
+		mass = universe.create_fundamental_unit('kilogram')
 		
+		velocity = length / time
+		acceleration = velocity / time
+		force = mass * acceleration
+		
+		self.assertEqual('kilogram meter/second^2', str(force))
+
+
 if __name__ == "__main__":
 	unittest.main()
