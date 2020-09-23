@@ -156,6 +156,15 @@ class TestSemantics(unittest.TestCase):
 		torque = distance * force
 		self.assertEqual(str(work), str(torque))
 		self.assertEqual(work, torque)
+		
+		# Identical (ratio-scale) units should add (and subtract) to themselves:
+		self.assertEqual(work, work + torque)
+		self.assertEqual(work, work - torque)
+		
+		# Non-homogenous units should throw an exception if such is attempted:
+		try: force + acceleration
+		except semantics.Invalid: pass
+		else: assert False
 
 
 if __name__ == "__main__":

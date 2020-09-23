@@ -75,6 +75,13 @@ class UnitOfMeasure:
 	
 	def __eq__(self, other):
 		return isinstance(other, UnitOfMeasure) and self.powers == other.powers
+	
+	def __add__(self, other):
+		if not isinstance(other, UnitOfMeasure): return NotImplemented
+		if self != other: raise Invalid("Units don't match: '%s' is not '%s'"%(self, other))
+		return self
+	
+	__sub__ = __add__
 
 dimensionless = UnitOfMeasure({})
 
