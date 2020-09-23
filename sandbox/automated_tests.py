@@ -33,7 +33,7 @@ class SmokeTest(unittest.TestCase):
 			return universe
 		else:
 			emit_saved_complaints()
-			self.assertEqual(expect_count, len(actual))
+			raise self.failureException("Expected %d error item(s); actually counted %d."%(expect_count, len(actual)))
 	
 	def test_smoke(self):
 		# It should at least do sensible things...
@@ -103,6 +103,11 @@ class SmokeTest(unittest.TestCase):
 	def test_reject_double_dimensions(self):
 		self.case(2, """
 			double_dim is quantity_sold by [ProductID, ProductID] -- reject repeated dimension in target space.
+		""")
+	
+	def test_reject_heterogeneous_add(self):
+		self.case(2, """
+			broken is quantity_sold + unit_price -- Reject because different units must not add.
 		""")
 
 
