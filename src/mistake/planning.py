@@ -13,9 +13,6 @@ class AlreadyRegistered(Exception):
 class UsageConflict(Exception):
 	""" The same-named query variable is used in conflicting ways. """
 
-class UnitProduct(NamedTuple):
-	""""""
-
 class MistakeModule:
 	"""
 	Think of this as like a schema for a database. A application has
@@ -140,10 +137,17 @@ class Planner(foundation.Visitor):
 		except semantics.Invalid as e: raise Gripe(op_span, e.message) from None
 		else: return lhs, rhs
 	
-	def visit_TensorSum(self, d: frontend.TensorSum): return runtime.SumTensor(*self.__symmetric_types(*d))
-	def visit_Difference(self, d: frontend.Difference): return runtime.difference(*self.__symmetric_types(*d))
-	def visit_Product(self, d: frontend.Product): return runtime.Product(*self.__symmetric_types(*d))
-	def visit_Quotient(self, d: frontend.Difference): return runtime.Quotient(*self.__symmetric_types(*d))
+	def visit_TensorSum(self, d: frontend.TensorSum):
+		return runtime.SumTensor(*self.__symmetric_types(*d))
+	
+	def visit_Difference(self, d: frontend.Difference):
+		return runtime.difference(*self.__symmetric_types(*d))
+	
+	def visit_Product(self, d: frontend.Product):
+		return runtime.Product(*self.__symmetric_types(*d))
+	
+	def visit_Quotient(self, d: frontend.Difference):
+		return runtime.Quotient(*self.__symmetric_types(*d))
 	
 	def visit_Multiplex(self, m:frontend.Multiplex):
 		lhs, rhs = self.__symmetric_types(m.if_true, m.criterion.axis.span, m.if_false)
