@@ -95,9 +95,14 @@ class TensorType:
 		self.space = frozenset(space)
 		self.unit = unit
 	
-	def require_perfect_symmetry(self, other:"TensorType"):
-		diff = self.space.symmetric_difference(other.space)
-		if diff: raise Invalid("Operand spaces do not agree about %r" % sorted(diff))
+	def __eq__(self, other):
+		if isinstance(other, TensorType): return self.space, self.unit == other.space, other.unit
+		else: return NotImplemented
+	
+def require_spatial_symmetry(space_a, space_b) -> FrozenSet[str]:
+	diff = space_a.symmetric_difference(space_b)
+	if diff: raise Invalid("Operand spaces do not agree about %r" % sorted(diff))
+	return frozenset(space_a)
 
 class UniverseOfDiscourse:
 	"""

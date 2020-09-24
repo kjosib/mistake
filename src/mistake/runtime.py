@@ -50,24 +50,28 @@ class TensorBuffer:
 			yield dict(zip(self.__schedule, key)), value
 	
 
-class SumTensor(AbstractTensor):
+class BinaryTensorOperation(AbstractTensor):
+	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor, tt:semantics.TensorType):
+		self._lhs = lhs
+		self._rhs = rhs
+		self.__tt = tt
+	def tensor_type(self) -> semantics.TensorType: return self.__tt
+
+class SumTensor(BinaryTensorOperation):
 	""" Simplest possible "work-flow" class """
-	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
-		self.__lhs = lhs
-		self.__rhs = rhs
+	def __init__(self, lhs: AbstractTensor, rhs: AbstractTensor, tt: semantics.TensorType):
+		super().__init__(lhs, rhs, tt)
 		if hasattr(lhs, 'get') and hasattr(rhs, 'get'):
 			self.get = lambda point: lhs.get(point) + rhs.get(point)
-	
-	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
 	
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		# Note this could possibly yield increments to the same point twice. That's OK because
 		# points are incremental -- at least under the assumption that everything else is...
-		yield from self.__lhs.stream(predicate, environment)
-		yield from self.__rhs.stream(predicate, environment)
+		yield from self._lhs.stream(predicate, environment)
+		yield from self._rhs.stream(predicate, environment)
 
-def difference(lhs:AbstractTensor, rhs:AbstractTensor):
-	return SumTensor(lhs, ScaleTensor(rhs, -1))
+def difference(lhs: AbstractTensor, rhs: AbstractTensor, tt: semantics.TensorType) -> SumTensor:
+	return SumTensor(lhs, ScaleTensor(rhs, -1), tt)
 
 class ScaleTensor(AbstractTensor):
 	""" This is sort of cheating IN THAT read-through access could be provided if the basis supported it. """
@@ -104,29 +108,22 @@ class Aggregation(AbstractTensor):
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
 		return self.__basis.stream(predicate, environment)
 
-class Product(AbstractTensor):
-	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
-		self.__lhs = lhs
-		self.__rhs = rhs
-	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
+class Product(BinaryTensorOperation):
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
-		denominator = TensorBuffer(self.__rhs, predicate, environment)
-		for p,v in self.__lhs.stream(predicate, environment):
+		denominator = TensorBuffer(self._rhs, predicate, environment)
+		for p,v in self._lhs.stream(predicate, environment):
 			yield p, v * denominator.get(p)
 
-class Quotient(AbstractTensor):
-	def __init__(self, lhs:AbstractTensor, rhs:AbstractTensor):
-		self.__lhs = lhs
-		self.__rhs = rhs
-	def tensor_type(self) -> semantics.TensorType: return self.__lhs.tensor_type()
+class Quotient(BinaryTensorOperation):
 	def stream(self, predicate: Predicate, environment:Mapping) -> Generator:
-		denominator = TensorBuffer(self.__rhs, predicate, environment)
-		for p,v in self.__lhs.stream(predicate, environment):
+		denominator = TensorBuffer(self._rhs, predicate, environment)
+		for p,v in self._lhs.stream(predicate, environment):
 			d = denominator.get(p)
 			if d: yield p, v/d
 
 class Multiplex(AbstractTensor):
 	def __init__(self, lhs:AbstractTensor, criterion:AbstractCriterion, rhs:AbstractTensor):
+		assert lhs.tensor_type() == rhs.tensor_type()
 		self.__lhs = lhs
 		self.__criterion = criterion
 		self.__rhs = rhs

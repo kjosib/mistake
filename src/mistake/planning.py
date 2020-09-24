@@ -2,6 +2,7 @@
 This is turning into the API submodule for
 """
 from typing import Callable, Iterable, Dict, Tuple, FrozenSet, Set, NamedTuple
+import operator
 from boozetools.support import foundation
 from . import frontend, runtime, domain, semantics
 
@@ -95,6 +96,17 @@ class Gripe(Exception):
 	def __init__(self, span:Tuple[int, int], message:str): self.span, self.message = span, message
 	def gripe(self, how): how(*self.span, message=self.message)
 
+class BTOS(NamedTuple):
+	combine_space:Callable
+	combine_units:Callable
+	construct_plan:Callable
+
+STRATEGY = {
+	"+": BTOS(semantics.require_spatial_symmetry, operator.add, runtime.SumTensor),
+	"-": BTOS(semantics.require_spatial_symmetry, operator.sub, runtime.difference),
+	"*": BTOS(semantics.require_spatial_symmetry, operator.mul, runtime.Product),
+	"/": BTOS(semantics.require_spatial_symmetry, operator.truediv, runtime.Quotient),
+}
 
 class Planner(foundation.Visitor):
 	"""
@@ -116,42 +128,35 @@ class Planner(foundation.Visitor):
 	
 	def visit_DefineTensor(self, dt:frontend.DefineTensor):
 		if dt.name.text in self.__type_env:
-			self.__complain(*dt.name.span, message="Tensor name was previously defined; ignoring redefinition.")
+			self.__complain(*dt.name.span, message="Name was previously defined; ignoring redefinition.")
 		else:
 			try: tensor = self.visit(dt.expr)
 			except Gripe as e:
-				self.__complain(*dt.name.span, message="Tensor value has invalid spatial type, because...")
+				self.__complain(*dt.name.span, message="Tensor variable has invalid type, because...")
 				e.gripe(self.__complain)
-				space = None
+				tt = None
 			else:
 				self.__universe.register_tensor(dt.name.text, tensor) # Contains type assertion.
-				space = tensor.tensor_type()
-				if self.__verbose: print(dt.name.text, 'has shape', sorted(space))
-			self.__type_env[dt.name.text] = space
+				tt = tensor.tensor_type()
+				if self.__verbose: print("%s has shape %r and units of '%s'"%(dt.name.text, sorted(tt.space), tt.unit))
+			self.__type_env[dt.name.text] = tt
 	
-	def __symmetric_types(self, lhs_exp, op_span, rhs_exp):
-		lhs = self.visit(lhs_exp)
-		rhs = self.visit(rhs_exp)
-		assert isinstance(lhs, domain.AbstractTensor) and isinstance(rhs, domain.AbstractTensor)
-		try: lhs.tensor_type().require_perfect_symmetry(rhs.tensor_type())
-		except semantics.Invalid as e: raise Gripe(op_span, e.message) from None
-		else: return lhs, rhs
-	
-	def visit_TensorSum(self, d: frontend.TensorSum):
-		return runtime.SumTensor(*self.__symmetric_types(*d))
-	
-	def visit_Difference(self, d: frontend.Difference):
-		return runtime.difference(*self.__symmetric_types(*d))
-	
-	def visit_Product(self, d: frontend.Product):
-		return runtime.Product(*self.__symmetric_types(*d))
-	
-	def visit_Quotient(self, d: frontend.Difference):
-		return runtime.Quotient(*self.__symmetric_types(*d))
+	def visit_BinaryTensorOp(self, d: frontend.BinaryTensorOp):
+		strategy = STRATEGY[d.symbol]
+		lhs, rhs = self.visit(d.a_exp), self.visit(d.b_exp)
+		lt, rt = lhs.tensor_type(), rhs.tensor_type()
+		try:
+			space = strategy.combine_space(lt.space, rt.space)
+			unit = strategy.combine_units(lt.unit, rt.unit)
+		except semantics.Invalid as e:
+			raise Gripe(d.span, e.message)
+		return strategy.construct_plan(lhs, rhs, semantics.TensorType(space, unit))
 	
 	def visit_Multiplex(self, m:frontend.Multiplex):
-		lhs, rhs = self.__symmetric_types(m.if_true, m.criterion.axis.span, m.if_false)
-		return runtime.Multiplex(lhs, self.visit(m.criterion, lhs.tensor_type()), rhs)
+		if_true, if_false = self.visit(m.if_true), self.visit(m.if_false)
+		if if_true.tensor_type() != if_false.tensor_type():
+			raise Gripe(m.keyword_span, "Left and right side tensors must have identical type")
+		return runtime.Multiplex(if_true, self.visit(m.criterion, if_true.tensor_type()), if_false)
 	
 	def visit_Filter(self, f:frontend.Filter):
 		basis = self.visit(f.basis)

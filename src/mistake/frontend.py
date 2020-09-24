@@ -1,5 +1,6 @@
 from typing import NamedTuple, Tuple, List, Optional
 from numbers import Number
+from functools import partial
 from boozetools.support import runtime as brt
 from boozetools.support.interfaces import Scanner
 from . import utility
@@ -16,22 +17,8 @@ class DefineTensor(NamedTuple):
 	name: Name
 	expr:object
 
-class TensorSum(NamedTuple):
-	a_exp: object
-	span: Span
-	b_exp: object
-
-class Difference(NamedTuple):
-	a_exp: object
-	span: Span
-	b_exp: object
-
-class Product(NamedTuple):
-	a_exp: object
-	span: Span
-	b_exp: object
-
-class Quotient(NamedTuple):
+class BinaryTensorOp(NamedTuple):
+	symbol:str
 	a_exp: object
 	span: Span
 	b_exp: object
@@ -53,11 +40,13 @@ class ScalarComparison(NamedTuple):
 
 class Multiplex(NamedTuple):
 	if_true: object
+	keyword_span: Span
 	criterion: object
 	if_false: object
 
 class Filter(NamedTuple):
 	basis: object
+	keyword_span: Span
 	criterion: object
 
 class MappingExpression(NamedTuple):
@@ -129,10 +118,10 @@ class Parser(brt.TypicalApplication):
 		return them
 	
 	parse_define_tensor = staticmethod(DefineTensor)
-	parse_tensor_sum = staticmethod(TensorSum)
-	parse_difference = staticmethod(Difference)
-	parse_product = staticmethod(Product)
-	parse_quotient = staticmethod(Quotient)
+	parse_tensor_sum = staticmethod(partial(BinaryTensorOp, '+'))
+	parse_difference = staticmethod(partial(BinaryTensorOp, '-'))
+	parse_product = staticmethod(partial(BinaryTensorOp, '*'))
+	parse_quotient = staticmethod(partial(BinaryTensorOp, '/'))
 	
 	parse_criterion_relative = staticmethod(ScalarComparison)
 	parse_filter = staticmethod(Filter)

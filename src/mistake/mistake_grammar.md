@@ -52,7 +52,7 @@ identifier   \l\w*
 ## Declarations
 
 ```
-%void where else week space tensor of is newline sum
+%void else week space tensor of is newline sum
 %void means not in
 %void '(' ')' '[' ']' '{' '}'
 %void ',' ';'

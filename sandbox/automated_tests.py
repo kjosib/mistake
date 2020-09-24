@@ -136,12 +136,10 @@ class TestSemantics(unittest.TestCase):
 		
 		foo = semantics.TensorType(['store', 'product', 'customer'], universe['each'])
 		assert isinstance(foo, semantics.TensorType)
-		foo.require_perfect_symmetry(foo)
 		
 		bar = semantics.TensorType(['store', 'product', 'salesman'], universe['each'])
-		try: foo.require_perfect_symmetry(bar)
-		except semantics.Invalid: pass
-		else: assert False
+		assert foo.space != bar.space
+		assert foo.unit == bar.unit
 	
 	def test_play_with_units(self):
 		universe = semantics.UniverseOfDiscourse()
